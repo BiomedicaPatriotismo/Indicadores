@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inteligencia Operativa - Biomedicina</title>
+    <title>Indicadores - Hospital San Ángel Inn</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -38,12 +38,14 @@
 </head>
 <body class="bg-dark text-slate-200 p-0 md:p-8 relative min-h-screen">
 
+    <!-- MAIN CONTAINER -->
     <div id="mainDashboard" class="max-w-7xl mx-auto flex flex-col gap-6">
         
+        <!-- Header & Controls -->
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-panel p-6 rounded-xl border border-slate-800 shadow-lg">
             <div>
-                <h1 id="dashboardTitle" class="text-2xl md:text-3xl font-bold text-white tracking-tight">Inteligencia Operativa Biomédica</h1>
-                <p class="text-slate-400 mt-1"><i class="fa-regular fa-hospital mr-2"></i>Hospital Regional • 54 Camas / 4 Quirófanos</p>
+                <h1 id="dashboardTitle" class="text-2xl md:text-3xl font-bold text-white tracking-tight">Indicadores de Ingeniería Biomédica</h1>
+                <p id="dashboardSubtitle" class="text-slate-400 mt-1"><i class="fa-regular fa-hospital mr-2"></i>Hospital San Ángel Inn Patriotismo</p>
             </div>
             
             <div class="flex flex-wrap items-center gap-3">
@@ -64,6 +66,7 @@
             </div>
         </header>
 
+        <!-- KPI Cards Row -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-panel p-5 rounded-xl border border-slate-800 flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
@@ -105,12 +108,17 @@
                     <div class="p-2 bg-slate-800/50 rounded-lg text-success" id="icon-budget"><i class="fa-solid fa-sack-dollar"></i></div>
                 </div>
                 <div class="relative z-10">
-                    <h3 class="text-3xl font-bold text-white" id="kpi-budget">--%</h3>
+                    <!-- CONTENEDOR MODIFICADO PARA MOSTRAR PESOS Y PORCENTAJE -->
+                    <div class="flex items-baseline gap-2">
+                        <h3 class="text-3xl font-bold text-white" id="kpi-budget">--%</h3>
+                        <span class="text-sm font-medium text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded" id="kpi-budget-mxn">$0.00</span>
+                    </div>
                     <p class="text-xs text-slate-500 mt-1">Presupuesto total ejercido</p>
                 </div>
             </div>
         </div>
 
+        <!-- Main Charts Area -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 flex flex-col gap-6">
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 h-80">
@@ -142,12 +150,14 @@
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex-grow flex flex-col h-[21rem]">
                     <h3 class="text-white font-semibold mb-4 border-b border-slate-700 pb-2" id="title-retos"><i class="fa-solid fa-thumbtack text-primary mr-2"></i>Retos y Hallazgos</h3>
                     <div id="retosContainer" class="flex flex-col gap-3 overflow-y-auto pr-2 flex-grow">
-                        </div>
+                        <!-- Generado dinámicamente desde el Google Sheet -->
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- JAVASCRIPT -->
     <script>
         const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTpv30jyddCIL2Zwwkz_zlEk52O_Aa1iioBPZv90ZnjJ4uy7grVHbIcJQgIRP6xDvLJ53UJ396WfcZE/pub?output=csv"; 
 
@@ -158,8 +168,15 @@
         let budgetChartInstance = null;
         let downtimeChartInstance = null;
 
+        // Formateador de moneda para Pesos Mexicanos
+        const mxnFormatter = new Intl.NumberFormat('es-MX', {
+            style: 'currency',
+            currency: 'MXN',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+
         document.addEventListener("DOMContentLoaded", function() {
-            // Arrancar la descarga de datos inmediatamente
             fetchGoogleSheetsData();
 
             document.getElementById('monthSelector').addEventListener('change', function(e) {
@@ -256,7 +273,13 @@
 
                 dataSet[mes] = {
                     raw: raw,
-                    kpis: { mp_cumplimiento: raw.mp, mttr: raw.mttr, downtime: totalDowntime, budget_total: pctTotal },
+                    kpis: { 
+                        mp_cumplimiento: raw.mp, 
+                        mttr: raw.mttr, 
+                        downtime: totalDowntime, 
+                        budget_total: pctTotal,
+                        budget_mxn: raw.presTotalEjer // Variable en pesos
+                    },
                     charts: { ratio_mp: raw.ratioMP, ratio_mc: raw.ratioMC, downtime_equipos: [raw.downReso, raw.downTomo, raw.downHemo, raw.downRayos], budget_pct: [pctTotal, pctMtto] },
                     retos: [
                         { tipo: retoTipo, icon: iconClass, titulo: retoTitulo, desc: retoDesc }
@@ -281,12 +304,13 @@
             const data = dataSet[monthKey];
             if(!data) return;
 
-            document.getElementById('dashboardTitle').innerHTML = `Inteligencia Operativa Biomédica <span class="text-primary text-xl ml-2 capitalize">(${monthKey})</span>`;
+            document.getElementById('dashboardTitle').innerHTML = `Indicadores de Ingeniería Biomédica <span class="text-primary text-xl ml-2 capitalize">(${monthKey})</span>`;
+            document.getElementById('dashboardSubtitle').innerHTML = `<i class="fa-regular fa-hospital mr-2"></i>Hospital San Ángel Inn Patriotismo`;
+            
             document.getElementById('lbl-mp').innerText = "Cumplimiento MP";
             document.getElementById('lbl-mttr').innerText = "MTTR (Mensual)";
             document.getElementById('lbl-downtime').innerText = "Downtime (Mensual)";
             document.getElementById('title-downtime').innerText = "Inactividad por Equipo Específico";
-            
             document.getElementById('title-retos').innerHTML = '<i class="fa-solid fa-thumbtack text-primary mr-2"></i>Retos y Hallazgos';
             
             const retosHTML = data.retos.map(r => {
@@ -306,7 +330,7 @@
             document.getElementById('retosContainer').innerHTML = retosHTML;
 
             actualizarTarjetasYGraficas(
-                data.kpis.mp_cumplimiento, data.kpis.mttr, data.kpis.downtime, data.kpis.budget_total,
+                data.kpis.mp_cumplimiento, data.kpis.mttr, data.kpis.downtime, data.kpis.budget_total, data.kpis.budget_mxn,
                 data.charts.ratio_mp, data.charts.ratio_mc, data.charts.downtime_equipos, data.charts.budget_pct
             );
         }
@@ -341,13 +365,15 @@
             let avgRatioMP = sumRatioMP / count;
             let avgRatioMC = sumRatioMC / count;
 
-            document.getElementById('dashboardTitle').innerHTML = `Inteligencia Operativa Biomédica <span class="text-annual text-xl ml-2">(Acumulado Anual)</span>`;
+            document.getElementById('dashboardTitle').innerHTML = `Indicadores de Ingeniería Biomédica <span class="text-annual text-xl ml-2">(Acumulado Anual)</span>`;
+            document.getElementById('dashboardSubtitle').innerHTML = `<i class="fa-regular fa-hospital mr-2"></i>Hospital San Ángel Inn Patriotismo`;
+            
             document.getElementById('lbl-mp').innerText = "Promedio MP Anual";
             document.getElementById('lbl-mttr').innerText = "Promedio MTTR Anual";
             document.getElementById('lbl-downtime').innerText = "Downtime Total Acumulado";
             document.getElementById('title-downtime').innerText = "Inactividad Histórica por Equipo";
-            
             document.getElementById('title-retos').innerHTML = '<i class="fa-solid fa-chart-line text-annual mr-2"></i>Resumen Estratégico';
+            
             document.getElementById('retosContainer').innerHTML = `
                 <div class="flex gap-4 items-start p-3 bg-dark rounded-lg border border-slate-700/50">
                     <div class="p-2 rounded-full mt-1 text-annual bg-annual/10"><i class="fa-solid fa-calendar-check fa-fw"></i></div>
@@ -358,16 +384,19 @@
                 </div>`;
 
             actualizarTarjetasYGraficas(
-                avgMP, avgMTTR, totalDowntime, pctTotalAnual,
+                avgMP, avgMTTR, totalDowntime, pctTotalAnual, sumEjerTotal,
                 avgRatioMP, avgRatioMC, sumDown, [pctTotalAnual, pctMttoAnual]
             );
         }
 
-        function actualizarTarjetasYGraficas(mp, mttr, downtime, bgTotal, ratioMp, ratioMc, arrDown, arrBg) {
+        function actualizarTarjetasYGraficas(mp, mttr, downtime, bgTotal, bgMxn, ratioMp, ratioMc, arrDown, arrBg) {
             document.getElementById('kpi-mp').innerText = mp + '%';
             document.getElementById('kpi-mttr').innerText = mttr;
             document.getElementById('kpi-downtime').innerText = downtime;
             document.getElementById('kpi-budget').innerText = Number(bgTotal).toFixed(1) + '%';
+            
+            // Actualización del monto en pesos
+            document.getElementById('kpi-budget-mxn').innerText = mxnFormatter.format(bgMxn);
 
             const budgetCardBg = document.getElementById('bg-alert-budget');
             const budgetIcon = document.getElementById('icon-budget');
