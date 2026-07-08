@@ -5,22 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inteligencia Operativa - Biomedicina</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- PapaParse (Para leer Google Sheets) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Configuración de Tailwind para paleta de colores personalizada -->
     <script>
         tailwind.config = {
             theme: {
@@ -32,6 +26,7 @@
                         success: '#10b981', /* Emerald */
                         warning: '#f59e0b', /* Amber */
                         danger: '#f43f5e',  /* Rose */
+                        annual: '#8b5cf6',  /* Violet */
                     }
                 }
             }
@@ -39,7 +34,6 @@
     </script>
     <style>
         body { font-family: 'Inter', sans-serif; }
-        /* Oculta scrollbar para un look más limpio */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -48,7 +42,6 @@
 </head>
 <body class="bg-dark text-slate-200 p-0 md:p-8 relative min-h-screen">
 
-    <!-- PANTALLA DE LOGIN (Bloquea el acceso inicial) -->
     <div id="loginScreen" class="absolute inset-0 bg-dark z-50 flex flex-col items-center justify-center p-4">
         <div class="bg-panel p-8 rounded-xl border border-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.8)] max-w-md w-full text-center">
             <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-primary text-3xl">
@@ -66,23 +59,23 @@
         </div>
     </div>
 
-    <!-- MAIN CONTAINER (Oculto inicialmente) -->
     <div id="mainDashboard" class="max-w-7xl mx-auto hidden flex-col gap-6">
         
-        <!-- Header & Controls -->
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-panel p-6 rounded-xl border border-slate-800 shadow-lg">
             <div>
-                <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">Inteligencia Operativa Biomédica</h1>
+                <h1 id="dashboardTitle" class="text-2xl md:text-3xl font-bold text-white tracking-tight">Inteligencia Operativa Biomédica</h1>
                 <p class="text-slate-400 mt-1"><i class="fa-regular fa-hospital mr-2"></i>Hospital Regional • 54 Camas / 4 Quirófanos</p>
             </div>
             
             <div class="flex flex-wrap items-center gap-3">
-                <!-- Indicador de Sincronización -->
                 <div id="syncIndicator" class="flex items-center text-sm font-medium text-amber-400 bg-amber-400/10 px-3 py-2 rounded-full border border-amber-400/20">
                     <i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Esperando conexión...
                 </div>
 
-                <!-- Selector de Periodo -->
+                <button id="btnAnual" class="bg-annual hover:bg-violet-400 text-white font-bold py-1.5 px-4 rounded-lg transition-colors shadow-[0_0_10px_rgba(139,92,246,0.3)] flex items-center border border-violet-500">
+                    <i class="fa-solid fa-chart-line mr-2"></i>Vista Anual
+                </button>
+
                 <div class="flex items-center gap-2 bg-dark p-1.5 rounded-lg border border-slate-700 shadow-inner">
                     <label for="monthSelector" class="text-sm font-medium text-slate-300 ml-2"><i class="fa-regular fa-calendar mr-1"></i> Periodo:</label>
                     <select id="monthSelector" class="bg-dark text-white border-none rounded px-3 py-1 outline-none cursor-pointer focus:ring-0">
@@ -92,12 +85,10 @@
             </div>
         </header>
 
-        <!-- KPI Cards Row -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Cumplimiento MP -->
             <div class="bg-panel p-5 rounded-xl border border-slate-800 flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
-                    <p class="text-slate-400 text-sm font-medium">Cumplimiento MP</p>
+                    <p class="text-slate-400 text-sm font-medium" id="lbl-mp">Cumplimiento MP</p>
                     <div class="p-2 bg-slate-800/50 rounded-lg text-primary"><i class="fa-solid fa-clipboard-check"></i></div>
                 </div>
                 <div>
@@ -106,10 +97,9 @@
                 </div>
             </div>
 
-            <!-- MTTR -->
             <div class="bg-panel p-5 rounded-xl border border-slate-800 flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
-                    <p class="text-slate-400 text-sm font-medium">MTTR (Global)</p>
+                    <p class="text-slate-400 text-sm font-medium" id="lbl-mttr">MTTR (Global)</p>
                     <div class="p-2 bg-slate-800/50 rounded-lg text-primary"><i class="fa-solid fa-stopwatch"></i></div>
                 </div>
                 <div>
@@ -118,10 +108,9 @@
                 </div>
             </div>
 
-            <!-- Downtime Crítico -->
             <div class="bg-panel p-5 rounded-xl border border-slate-800 flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
-                    <p class="text-slate-400 text-sm font-medium">Downtime Modalidades</p>
+                    <p class="text-slate-400 text-sm font-medium" id="lbl-downtime">Downtime Modalidades</p>
                     <div class="p-2 bg-slate-800/50 rounded-lg text-danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
                 </div>
                 <div>
@@ -130,36 +119,29 @@
                 </div>
             </div>
 
-            <!-- Presupuesto -->
             <div class="bg-panel p-5 rounded-xl border border-slate-800 flex flex-col justify-between relative overflow-hidden">
                 <div class="absolute inset-0 bg-danger/10 hidden" id="bg-alert-budget"></div>
                 <div class="flex justify-between items-start mb-2 relative z-10">
-                    <p class="text-slate-400 text-sm font-medium">Ejecución Gasto Total</p>
+                    <p class="text-slate-400 text-sm font-medium">Ejecución Gasto</p>
                     <div class="p-2 bg-slate-800/50 rounded-lg text-success" id="icon-budget"><i class="fa-solid fa-sack-dollar"></i></div>
                 </div>
                 <div class="relative z-10">
                     <h3 class="text-3xl font-bold text-white" id="kpi-budget">--%</h3>
-                    <p class="text-xs text-slate-500 mt-1">Presupuesto anual ejercido</p>
+                    <p class="text-xs text-slate-500 mt-1">Presupuesto total ejercido</p>
                 </div>
             </div>
         </div>
 
-        <!-- Main Charts Area (2x2 Grid) -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- Columna Izquierda (Gráficas grandes) -->
             <div class="lg:col-span-2 flex flex-col gap-6">
-                
-                <!-- Downtime por Equipo -->
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 h-80">
-                    <h3 class="text-white font-semibold mb-1">Inactividad por Equipo Específico</h3>
+                    <h3 class="text-white font-semibold mb-1" id="title-downtime">Inactividad por Equipo Específico</h3>
                     <p class="text-xs text-slate-400 mb-4">Horas fuera de servicio para modalidades críticas</p>
                     <div class="relative h-[calc(100%-3rem)] w-full">
                         <canvas id="downtimeChart"></canvas>
                     </div>
                 </div>
 
-                <!-- Presupuesto Comparativo -->
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 h-80">
                     <h3 class="text-white font-semibold mb-1">Estado Financiero (Asignado vs Ejercido)</h3>
                     <p class="text-xs text-slate-400 mb-4">Desglose porcentual del departamento vs mantenimiento</p>
@@ -169,9 +151,7 @@
                 </div>
             </div>
 
-            <!-- Columna Derecha -->
             <div class="flex flex-col gap-6">
-                <!-- Proporción MP vs MC -->
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 h-80 flex flex-col">
                     <h3 class="text-white font-semibold mb-1">Carga de Trabajo</h3>
                     <p class="text-xs text-slate-400 mb-4">Preventivo vs Correctivo</p>
@@ -180,26 +160,23 @@
                     </div>
                 </div>
 
-                <!-- Retos Operativos -->
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex-grow flex flex-col h-[21rem]">
-                    <h3 class="text-white font-semibold mb-4 border-b border-slate-700 pb-2"><i class="fa-solid fa-thumbtack text-primary mr-2"></i>Retos y Hallazgos</h3>
+                    <h3 class="text-white font-semibold mb-4 border-b border-slate-700 pb-2" id="title-retos"><i class="fa-solid fa-thumbtack text-primary mr-2"></i>Retos y Hallazgos</h3>
                     <div id="retosContainer" class="flex flex-col gap-3 overflow-y-auto pr-2 flex-grow">
-                        <!-- Generado dinamicamente -->
-                    </div>
+                        </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- JAVASCRIPT -->
     <script>
         // ==========================================
         // 0. CONFIGURACIÓN DE SEGURIDAD Y DATOS
         // ==========================================
         
-        const PIN_ACCESO = "2026"; // <-- ESTE ES EL PIN PARA ENTRAR
+        const PIN_ACCESO = "2026"; 
         
-        // REEMPLAZA ESTA URL CON EL ENLACE CSV PÚBLICO DE TU GOOGLE SHEET
+        // ¡ASEGÚRATE DE PONER AQUÍ TU ENLACE!
         const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTpv30jyddCIL2Zwwkz_zlEk52O_Aa1iioBPZv90ZnjJ4uy7grVHbIcJQgIRP6xDvLJ53UJ396WfcZE/pub?output=csv"; 
 
 
@@ -209,33 +186,36 @@
         
         let dataSet = {};
         let currentMonth = '';
+        let isAnnualView = false;
         let ratioChartInstance = null;
         let budgetChartInstance = null;
         let downtimeChartInstance = null;
 
-        // Esperar a que todo el HTML esté cargado
         document.addEventListener("DOMContentLoaded", function() {
-            
-            // --- EVENTOS DEL LOGIN ---
-            const btnLogin = document.getElementById('loginBtn');
-            const inputCode = document.getElementById('accessCodeInput');
-            
-            btnLogin.addEventListener('click', attemptLogin);
-            
-            inputCode.addEventListener('keypress', function(e) {
+            // Eventos Login
+            document.getElementById('loginBtn').addEventListener('click', attemptLogin);
+            document.getElementById('accessCodeInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') attemptLogin();
             });
 
-            // --- EVENTO CAMBIO DE MES ---
+            // Evento Cambio de Mes
             document.getElementById('monthSelector').addEventListener('change', function(e) {
                 if(e.target.value) {
+                    isAnnualView = false;
                     currentMonth = e.target.value;
                     renderDashboard(currentMonth);
                 }
             });
 
-            // Configurar Chart.js por defecto para modo oscuro
-            Chart.defaults.color = '#94a3b8'; // slate-400
+            // Evento Botón Anual
+            document.getElementById('btnAnual').addEventListener('click', function() {
+                isAnnualView = true;
+                document.getElementById('monthSelector').value = ""; // Deseleccionar el mes
+                renderAnnualDashboard();
+            });
+
+            // Configuración Global Chart.js
+            Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = "'Inter', sans-serif";
             Chart.defaults.plugins.tooltip.backgroundColor = '#1e293b';
             Chart.defaults.plugins.tooltip.titleColor = '#f8fafc';
@@ -244,163 +224,221 @@
             Chart.defaults.plugins.tooltip.borderWidth = 1;
         });
 
-        // --- FUNCIÓN DE LOGIN ---
         function attemptLogin() {
-            const input = document.getElementById('accessCodeInput').value;
-            const errorMsg = document.getElementById('loginError');
-            
-            if (input === PIN_ACCESO) {
-                // Éxito: Ocultar login, mostrar dashboard
+            if (document.getElementById('accessCodeInput').value === PIN_ACCESO) {
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('mainDashboard').classList.remove('hidden');
                 document.getElementById('mainDashboard').classList.add('flex');
-                
-                // Iniciar la descarga de datos de Google Sheets
                 fetchGoogleSheetsData();
             } else {
-                // Error
-                errorMsg.classList.remove('hidden');
-                setTimeout(() => errorMsg.classList.add('hidden'), 3000);
+                document.getElementById('loginError').classList.remove('hidden');
+                setTimeout(() => document.getElementById('loginError').classList.add('hidden'), 3000);
             }
         }
-
 
         // ==========================================
         // 2. CONEXIÓN A GOOGLE SHEETS
         // ==========================================
         
         function fetchGoogleSheetsData() {
-            const syncIndicator = document.getElementById('syncIndicator');
-            syncIndicator.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Sincronizando...';
-            syncIndicator.className = "flex items-center text-sm font-medium text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-full border border-amber-400/20";
+            const sync = document.getElementById('syncIndicator');
+            sync.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Sincronizando...';
+            sync.className = "flex items-center text-sm font-medium text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-full border border-amber-400/20";
 
-            // Si el usuario aún no pone su enlace, usamos datos demo
             if(GOOGLE_SHEET_CSV_URL === "URL_AQUI_CUANDO_ESTES_LISTO") {
-                console.warn("URL de Google Sheets no configurada. Usando datos demo.");
                 simularDatosDemo();
                 return;
             }
 
-            // Descargar usando PapaParse
             Papa.parse(GOOGLE_SHEET_CSV_URL, {
                 download: true,
                 header: true,
                 complete: function(results) {
                     procesarDatos(results.data);
-                    syncIndicator.innerHTML = '<i class="fa-solid fa-cloud-arrow-down mr-2"></i>Sincronizado';
-                    syncIndicator.className = "flex items-center text-sm font-medium text-success bg-success/10 px-3 py-1.5 rounded-full border border-success/20";
+                    sync.innerHTML = '<i class="fa-solid fa-cloud-arrow-down mr-2"></i>Sincronizado';
+                    sync.className = "flex items-center text-sm font-medium text-success bg-success/10 px-3 py-1.5 rounded-full border border-success/20";
                 },
                 error: function(error) {
-                    console.error("Error PapaParse:", error);
-                    syncIndicator.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-2"></i>Error de red';
-                    syncIndicator.className = "flex items-center text-sm font-medium text-danger bg-danger/10 px-3 py-1.5 rounded-full border border-danger/20";
-                    alert("No se pudo conectar a Google Sheets. Revisa la consola o asegúrate de que el enlace CSV sea público.");
+                    sync.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-2"></i>Error de red';
+                    sync.className = "flex items-center text-sm font-medium text-danger bg-danger/10 px-3 py-1.5 rounded-full border border-danger/20";
+                    alert("No se pudo conectar a Google Sheets.");
                 }
             });
         }
 
-        // --- PROCESAMIENTO DE DATOS ---
+        function obtenerMesAnterior() {
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            let d = new Date();
+            let mesAnteriorIndex = d.getMonth() - 1; 
+            if (mesAnteriorIndex < 0) mesAnteriorIndex = 11; // Si es enero, pasa a diciembre
+            return meses[mesAnteriorIndex];
+        }
+
         function procesarDatos(rows) {
             dataSet = {}; 
             const selector = document.getElementById('monthSelector');
-            selector.innerHTML = ''; // Limpiar opciones
-
-            let count = 0;
+            selector.innerHTML = '<option value="" disabled>Seleccione...</option>'; 
 
             rows.forEach(row => {
                 const mes = String(row.mes || '').trim().toLowerCase();
-                if (!mes) return; // Ignorar filas vacías
+                if (!mes) return;
 
-                count++;
-                
-                // Agregar al selector
                 const option = document.createElement('option');
                 option.value = mes;
                 option.text = mes.charAt(0).toUpperCase() + mes.slice(1);
                 selector.appendChild(option);
 
-                // Cálculos
-                const downReso = Number(row.downtime_resonancia) || 0;
-                const downTomo = Number(row.downtime_tomografia) || 0;
-                const downHemo = Number(row.downtime_hemodinamia) || 0;
-                const downRayos = Number(row.downtime_rayos_x) || 0;
-                const totalDowntime = downReso + downTomo + downHemo + downRayos;
+                // Variables raw para cálculos anuales
+                const raw = {
+                    mp: Number(row.mp_cumplimiento) || 0,
+                    mttr: Number(row.mttr) || 0,
+                    downReso: Number(row.downtime_resonancia) || 0,
+                    downTomo: Number(row.downtime_tomografia) || 0,
+                    downHemo: Number(row.downtime_hemodinamia) || 0,
+                    downRayos: Number(row.downtime_rayos_x) || 0,
+                    presTotalAsig: Number(row.presupuesto_total_asig) || 100,
+                    presTotalEjer: Number(row.presupuesto_total_ejer) || 0,
+                    presMttoAsig: Number(row.presupuesto_mtto_asig) || 100,
+                    presMttoEjer: Number(row.presupuesto_mtto_ejer) || 0,
+                    ratioMP: Number(row.ratio_mp) || 0,
+                    ratioMC: Number(row.ratio_mc) || 0
+                };
 
-                const presTotalAsig = Number(row.presupuesto_total_asig) || 100;
-                const presTotalEjer = Number(row.presupuesto_total_ejer) || 0;
-                const presMttoAsig = Number(row.presupuesto_mtto_asig) || 100;
-                const presMttoEjer = Number(row.presupuesto_mtto_ejer) || 0;
-                
-                // Calcular porcentajes ejercidos vs asignados
-                const pctTotal = (presTotalEjer / presTotalAsig) * 100;
-                const pctMtto = (presMttoEjer / presMttoAsig) * 100;
+                const totalDowntime = raw.downReso + raw.downTomo + raw.downHemo + raw.downRayos;
+                const pctTotal = (raw.presTotalEjer / raw.presTotalAsig) * 100;
+                const pctMtto = (raw.presMttoEjer / raw.presMttoAsig) * 100;
 
-                // Armar estructura para el mes
                 dataSet[mes] = {
-                    kpis: {
-                        mp_cumplimiento: Number(row.mp_cumplimiento) || 0,
-                        mttr: Number(row.mttr) || 0,
-                        downtime: totalDowntime,
-                        budget_total: pctTotal
-                    },
-                    charts: {
-                        ratio_mp: Number(row.ratio_mp) || 0,
-                        ratio_mc: Number(row.ratio_mc) || 0,
-                        downtime_equipos: [downReso, downTomo, downHemo, downRayos],
-                        budget_pct: [pctTotal, pctMtto]
-                    },
-                    retos: [
-                        { tipo: 'success', icon: 'fa-cloud-check', titulo: "Nube Activa", desc: "Datos sincronizados desde Google Sheets exitosamente." }
-                    ]
+                    raw: raw,
+                    kpis: { mp_cumplimiento: raw.mp, mttr: raw.mttr, downtime: totalDowntime, budget_total: pctTotal },
+                    charts: { ratio_mp: raw.ratioMP, ratio_mc: raw.ratioMC, downtime_equipos: [raw.downReso, raw.downTomo, raw.downHemo, raw.downRayos], budget_pct: [pctTotal, pctMtto] }
                 };
             });
 
-            if (count > 0) {
-                currentMonth = String(rows[0].mes).toLowerCase();
+            // Lógica para abrir en el mes anterior
+            let keys = Object.keys(dataSet);
+            if (keys.length > 0) {
+                let mesIdeal = obtenerMesAnterior();
+                
+                // Si el mes anterior está en la base, lo usamos. Si no, usamos el último disponible.
+                if (dataSet[mesIdeal]) {
+                    currentMonth = mesIdeal;
+                } else {
+                    currentMonth = keys[keys.length - 1]; 
+                }
+                
                 selector.value = currentMonth;
                 renderDashboard(currentMonth);
             }
         }
 
         function simularDatosDemo() {
-            // Datos quemados para que veas que funciona antes de enlazar el Excel
             const mockData = [
-                {mes: 'abril', mp_cumplimiento: 92, mttr: 3.5, downtime_resonancia: 10, downtime_tomografia: 5, downtime_hemodinamia: 2, downtime_rayos_x: 0, presupuesto_total_asig: 100, presupuesto_total_ejer: 40, presupuesto_mtto_asig: 100, presupuesto_mtto_ejer: 45, ratio_mp: 80, ratio_mc: 20},
-                {mes: 'mayo', mp_cumplimiento: 96, mttr: 4.1, downtime_resonancia: 0, downtime_tomografia: 38, downtime_hemodinamia: 8, downtime_rayos_x: 4, presupuesto_total_asig: 100, presupuesto_total_ejer: 52, presupuesto_mtto_asig: 100, presupuesto_mtto_ejer: 110, ratio_mp: 70, ratio_mc: 30}
+                {mes: 'junio', mp_cumplimiento: 92, mttr: 3.5, downtime_resonancia: 10, downtime_tomografia: 5, downtime_hemodinamia: 2, downtime_rayos_x: 0, presupuesto_total_asig: 100, presupuesto_total_ejer: 40, presupuesto_mtto_asig: 100, presupuesto_mtto_ejer: 45, ratio_mp: 80, ratio_mc: 20},
+                {mes: 'julio', mp_cumplimiento: 96, mttr: 4.1, downtime_resonancia: 0, downtime_tomografia: 38, downtime_hemodinamia: 8, downtime_rayos_x: 4, presupuesto_total_asig: 100, presupuesto_total_ejer: 52, presupuesto_mtto_asig: 100, presupuesto_mtto_ejer: 110, ratio_mp: 70, ratio_mc: 30}
             ];
-            
-            // Simular un pequeño retraso de red
-            setTimeout(() => {
-                procesarDatos(mockData);
-                document.getElementById('syncIndicator').innerHTML = '<i class="fa-solid fa-flask mr-2"></i>Modo Prueba';
-                document.getElementById('syncIndicator').className = "flex items-center text-sm font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20";
-                
-                // Agregar retos dinámicos simulados al mes de Mayo (por el exceso de presupuesto)
-                dataSet['mayo'].retos.push({ tipo: 'danger', icon: 'fa-triangle-exclamation', titulo: "Alerta Presupuestal", desc: "El presupuesto de mantenimiento superó el límite asignado debido a la falla en tomografía." });
-                renderDashboard('abril');
-            }, 600);
+            setTimeout(() => procesarDatos(mockData), 600);
         }
 
 
         // ==========================================
-        // 3. RENDERIZADO DE GRÁFICAS E INTERFAZ
+        // 3. RENDERIZADO DE VISTAS (MENSUAL / ANUAL)
         // ==========================================
         
         function renderDashboard(monthKey) {
             const data = dataSet[monthKey];
             if(!data) return;
 
-            // 1. UPDATE KPIs
-            document.getElementById('kpi-mp').innerText = data.kpis.mp_cumplimiento + '%';
-            document.getElementById('kpi-mttr').innerText = data.kpis.mttr;
-            document.getElementById('kpi-downtime').innerText = data.kpis.downtime;
-            document.getElementById('kpi-budget').innerText = data.kpis.budget_total.toFixed(1) + '%';
+            // Ajustar textos para vista mensual
+            document.getElementById('dashboardTitle').innerHTML = `Inteligencia Operativa Biomédica <span class="text-primary text-xl ml-2 capitalize">(${monthKey})</span>`;
+            document.getElementById('lbl-mp').innerText = "Cumplimiento MP";
+            document.getElementById('lbl-mttr').innerText = "MTTR (Mensual)";
+            document.getElementById('lbl-downtime').innerText = "Downtime (Mensual)";
+            document.getElementById('title-downtime').innerText = "Inactividad por Equipo Específico";
+            
+            // Retos visuales simulados
+            document.getElementById('title-retos').innerHTML = '<i class="fa-solid fa-thumbtack text-primary mr-2"></i>Retos y Hallazgos';
+            document.getElementById('retosContainer').innerHTML = `
+                <div class="flex gap-4 items-start p-3 bg-dark rounded-lg border border-slate-700/50">
+                    <div class="p-2 rounded-full mt-1 text-primary bg-primary/10"><i class="fa-solid fa-cloud-check fa-fw"></i></div>
+                    <div>
+                        <h4 class="text-white text-sm font-semibold">Sincronización OK</h4>
+                        <p class="text-slate-400 text-xs mt-1 leading-relaxed">Mostrando reporte mensual de ${monthKey}.</p>
+                    </div>
+                </div>`;
+
+            actualizarTarjetasYGraficas(
+                data.kpis.mp_cumplimiento, data.kpis.mttr, data.kpis.downtime, data.kpis.budget_total,
+                data.charts.ratio_mp, data.charts.ratio_mc, data.charts.downtime_equipos, data.charts.budget_pct
+            );
+        }
+
+        function renderAnnualDashboard() {
+            let keys = Object.keys(dataSet);
+            if(keys.length === 0) return;
+
+            // Variables para acumular
+            let sumMP = 0, sumMTTR = 0, count = 0;
+            let sumDown = [0, 0, 0, 0];
+            let sumAsigTotal = 0, sumEjerTotal = 0, sumAsigMtto = 0, sumEjerMtto = 0;
+            let sumRatioMP = 0, sumRatioMC = 0;
+
+            for (let m in dataSet) {
+                let r = dataSet[m].raw;
+                sumMP += r.mp;
+                sumMTTR += r.mttr;
+                sumDown[0] += r.downReso; sumDown[1] += r.downTomo; sumDown[2] += r.downHemo; sumDown[3] += r.downRayos;
+                sumAsigTotal += r.presTotalAsig; sumEjerTotal += r.presTotalEjer;
+                sumAsigMtto += r.presMttoAsig; sumEjerMtto += r.presMttoEjer;
+                sumRatioMP += r.ratioMP; sumRatioMC += r.ratioMC;
+                count++;
+            }
+
+            // Promedios y Totales Anuales
+            let avgMP = (sumMP / count).toFixed(1);
+            let avgMTTR = (sumMTTR / count).toFixed(1);
+            let totalDowntime = sumDown.reduce((a,b)=>a+b, 0);
+            
+            let pctTotalAnual = sumAsigTotal ? ((sumEjerTotal / sumAsigTotal) * 100) : 0;
+            let pctMttoAnual = sumAsigMtto ? ((sumEjerMtto / sumAsigMtto) * 100) : 0;
+            
+            let avgRatioMP = sumRatioMP / count;
+            let avgRatioMC = sumRatioMC / count;
+
+            // Ajustar textos para vista anual
+            document.getElementById('dashboardTitle').innerHTML = `Inteligencia Operativa Biomédica <span class="text-annual text-xl ml-2">(Acumulado Anual)</span>`;
+            document.getElementById('lbl-mp').innerText = "Promedio MP Anual";
+            document.getElementById('lbl-mttr').innerText = "Promedio MTTR Anual";
+            document.getElementById('lbl-downtime').innerText = "Downtime Total Acumulado";
+            document.getElementById('title-downtime').innerText = "Inactividad Histórica por Equipo";
+            
+            document.getElementById('title-retos').innerHTML = '<i class="fa-solid fa-chart-line text-annual mr-2"></i>Resumen Estratégico';
+            document.getElementById('retosContainer').innerHTML = `
+                <div class="flex gap-4 items-start p-3 bg-dark rounded-lg border border-slate-700/50">
+                    <div class="p-2 rounded-full mt-1 text-annual bg-annual/10"><i class="fa-solid fa-calendar-check fa-fw"></i></div>
+                    <div>
+                        <h4 class="text-white text-sm font-semibold">Vista Consolidada</h4>
+                        <p class="text-slate-400 text-xs mt-1 leading-relaxed">Calculando promedios y sumas en base a ${count} meses registrados en el sistema.</p>
+                    </div>
+                </div>`;
+
+            actualizarTarjetasYGraficas(
+                avgMP, avgMTTR, totalDowntime, pctTotalAnual,
+                avgRatioMP, avgRatioMC, sumDown, [pctTotalAnual, pctMttoAnual]
+            );
+        }
+
+        function actualizarTarjetasYGraficas(mp, mttr, downtime, bgTotal, ratioMp, ratioMc, arrDown, arrBg) {
+            // Actualizar KPIs
+            document.getElementById('kpi-mp').innerText = mp + '%';
+            document.getElementById('kpi-mttr').innerText = mttr;
+            document.getElementById('kpi-downtime').innerText = downtime;
+            document.getElementById('kpi-budget').innerText = Number(bgTotal).toFixed(1) + '%';
 
             // Alerta visual de presupuesto
             const budgetCardBg = document.getElementById('bg-alert-budget');
             const budgetIcon = document.getElementById('icon-budget');
-            
-            if(data.kpis.budget_total > 100 || (data.charts.budget_pct && data.charts.budget_pct[1] > 100)) {
+            if(bgTotal > 100 || arrBg[1] > 100) {
                 budgetCardBg.classList.remove('hidden');
                 budgetIcon.className = "p-2 bg-slate-800/50 rounded-lg text-danger z-10 relative";
             } else {
@@ -408,130 +446,42 @@
                 budgetIcon.className = "p-2 bg-slate-800/50 rounded-lg text-success z-10 relative";
             }
 
-            // 2. RETOS LIST
-            const retosHTML = data.retos.map(r => {
-                let colorClass = r.tipo === 'danger' ? 'text-danger bg-danger/10' : 
-                                 r.tipo === 'warning' ? 'text-warning bg-warning/10' : 
-                                 r.tipo === 'success' ? 'text-success bg-success/10' : 'text-primary bg-primary/10';
-                return `
-                    <div class="flex gap-4 items-start p-3 bg-dark rounded-lg border border-slate-700/50">
-                        <div class="p-2 rounded-full mt-1 ${colorClass}"><i class="fa-solid ${r.icon} fa-fw"></i></div>
-                        <div>
-                            <h4 class="text-white text-sm font-semibold">${r.titulo}</h4>
-                            <p class="text-slate-400 text-xs mt-1 leading-relaxed">${r.desc}</p>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            document.getElementById('retosContainer').innerHTML = retosHTML;
-
-            // 3. CHARTS UPDATE (Destruir anteriores si existen)
-            
-            // --- Gráfica Proporción (Doughnut) ---
+            // Gráfica Doughnut
             if(ratioChartInstance) ratioChartInstance.destroy();
-            const ctxRatio = document.getElementById('ratioChart').getContext('2d');
-            ratioChartInstance = new Chart(ctxRatio, {
+            ratioChartInstance = new Chart(document.getElementById('ratioChart'), {
                 type: 'doughnut',
                 data: {
                     labels: ['Preventivo (MP)', 'Correctivo (MC)'],
-                    datasets: [{
-                        data: [data.charts.ratio_mp, data.charts.ratio_mc],
-                        backgroundColor: ['#10b981', '#f43f5e'],
-                        borderWidth: 0,
-                        hoverOffset: 4
-                    }]
+                    datasets: [{ data: [ratioMp, ratioMc], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0, hoverOffset: 4 }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '75%',
-                    plugins: {
-                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' } }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' } } } }
             });
 
-            // --- Gráfica Downtime (Barras Horizontales) ---
+            // Gráfica Barras Horizontales (Downtime)
             if(downtimeChartInstance) downtimeChartInstance.destroy();
-            const ctxDown = document.getElementById('downtimeChart').getContext('2d');
-            downtimeChartInstance = new Chart(ctxDown, {
+            downtimeChartInstance = new Chart(document.getElementById('downtimeChart'), {
                 type: 'bar',
                 data: {
                     labels: ['Resonancia', 'Tomografía', 'Hemodinamia', 'Rayos X'],
-                    datasets: [{
-                        label: 'Horas de Inactividad',
-                        data: data.charts.downtime_equipos,
-                        backgroundColor: ['#f43f5e', '#f59e0b', '#38bdf8', '#10b981'],
-                        borderRadius: 4
-                    }]
+                    datasets: [{ label: 'Horas de Inactividad', data: arrDown, backgroundColor: ['#f43f5e', '#f59e0b', '#38bdf8', '#10b981'], borderRadius: 4 }]
                 },
-                options: {
-                    indexAxis: 'y', // Barra horizontal
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: '#1e293b' }, title: { display: true, text: 'Horas Totales', color: '#64748b' } },
-                        y: { grid: { display: false } }
-                    }
-                }
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#1e293b' }, title: { display: true, text: 'Horas Totales', color: '#64748b' } }, y: { grid: { display: false } } } }
             });
 
-            // --- Gráfica Presupuesto (Barras Agrupadas) ---
+            // Gráfica Barras Agrupadas (Presupuesto)
             if(budgetChartInstance) budgetChartInstance.destroy();
-            const ctxBudget = document.getElementById('budgetChart').getContext('2d');
-            
-            // Revisar si algún presupuesto superó el 100% para pintarlo rojo
-            const bgColors = data.charts.budget_pct.map(val => val > 100 ? '#f43f5e' : '#38bdf8');
-
-            budgetChartInstance = new Chart(ctxBudget, {
+            const bgColors = arrBg.map(val => val > 100 ? '#f43f5e' : '#38bdf8');
+            budgetChartInstance = new Chart(document.getElementById('budgetChart'), {
                 type: 'bar',
                 data: {
                     labels: ['Total Depto.', 'Refacciones / Mtto.'],
-                    datasets: [
-                        {
-                            label: '% Ejercido',
-                            data: data.charts.budget_pct,
-                            backgroundColor: bgColors,
-                            borderRadius: 4
-                        }
-                    ]
+                    datasets: [{ label: '% Ejercido', data: arrBg, backgroundColor: bgColors, borderRadius: 4 }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: { callbacks: { label: function(context) { return context.parsed.y.toFixed(1) + '%'; } } }
-                    },
-                    scales: {
-                        y: { 
-                            beginAtZero: true, 
-                            max: Math.max(120, ...data.charts.budget_pct) + 10, // Escala dinámica
-                            grid: { color: '#1e293b' },
-                            ticks: { callback: function(value){ return value + '%' } }
-                        },
-                        x: { grid: { display: false } }
-                    },
-                    // Dibujar una línea de meta del 100%
-                    animation: {
-                        onComplete: function() {
-                            const chart = this;
-                            const ctx = chart.ctx;
-                            const yAxis = chart.scales.y;
-                            const y100 = yAxis.getPixelForValue(100);
-                            
-                            ctx.save();
-                            ctx.beginPath();
-                            ctx.moveTo(chart.chartArea.left, y100);
-                            ctx.lineTo(chart.chartArea.right, y100);
-                            ctx.lineWidth = 2;
-                            ctx.strokeStyle = '#f43f5e'; // Línea roja punteada
-                            ctx.setLineDash([5, 5]);
-                            ctx.stroke();
-                            ctx.restore();
-                        }
-                    }
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return ctx.parsed.y.toFixed(1) + '%'; } } } },
+                    scales: { y: { beginAtZero: true, max: Math.max(120, ...arrBg) + 10, grid: { color: '#1e293b' }, ticks: { callback: function(val){ return val + '%' } } }, x: { grid: { display: false } } },
+                    animation: { onComplete: function() { const ctx = this.ctx; const y100 = this.scales.y.getPixelForValue(100); ctx.save(); ctx.beginPath(); ctx.moveTo(this.chartArea.left, y100); ctx.lineTo(this.chartArea.right, y100); ctx.lineWidth = 2; ctx.strokeStyle = '#f43f5e'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.restore(); } }
                 }
             });
         }
