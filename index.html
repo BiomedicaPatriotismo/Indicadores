@@ -111,7 +111,7 @@
                 display: grid !important;
                 grid-template-columns: repeat(2, 1fr) !important;
                 gap: 5px !important;
-                margin-bottom: 10px !important;
+                margin-bottom: 15px !important; /* Separación después de las tarjetas en impresión */
             }
             .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 > div {
                 border: 1px solid #cbd5e1 !important; /* Borde sutil para tarjetas KPI */
@@ -166,9 +166,6 @@
                 margin-bottom: 5px !important;
                 page-break-inside: avoid !important;
             }
-
-            /* Forzar salto de página manual si es necesario (Opcional, usualmente evoid funciona bien) */
-            /* .page-break-before { page-break-before: always !important; } */
         }
     </style>
 </head>
@@ -251,7 +248,8 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- AÑADIDO: mb-6 para forzar la separación vertical (gap) respecto a los gráficos inferiores -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div class="bg-panel p-5 rounded-xl border border-slate-800 flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
                     <p class="text-slate-400 text-sm font-medium" id="lbl-mp">Cumplimiento MP</p>
@@ -381,12 +379,18 @@
     </div>
 
     <script>
-        // ==============================================================================
         // CONFIGURACIÓN DE SEGURIDAD
         const CODIGO_ACCESO_CORRECTO = "ADMIN123"; 
 
         const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTpv30jyddCIL2Zwwkz_zlEk52O_Aa1iioBPZv90ZnjJ4uy7grVHbIcJQgIRP6xDvLJ53UJ396WfcZE/pub?output=csv"; 
         
+        let dataSet = {}; 
+        let historicoMeses = [];
+        let historicoMP = [];
+        let historicoGastoTotal = [];
+        let currentMonth = '';
+        let isAnnualView = false;
+
         let ratioChartInstance = null;
         let budgetChartInstance = null;
         let downtimeChartInstance = null;
@@ -471,7 +475,6 @@
             Chart.defaults.plugins.tooltip.borderWidth = 1;
         });
 
-        // FUNCIÓN QUE LIBERA EL DASHBOARD Y COMIENZA A DESCARGAR DATOS
         function mostrarDashboard() {
             const loginScreen = document.getElementById('loginScreen');
             loginScreen.classList.add('opacity-0');
