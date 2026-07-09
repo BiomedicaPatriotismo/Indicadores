@@ -153,10 +153,18 @@
                 </div>
 
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 20rem;">
-                    <h3 class="text-white font-semibold mb-1" id="trendChartTitle">Evolución de Cumplimiento (Histórico)</h3>
-                    <p class="text-xs text-slate-400 mb-4" id="trendChartSubtitle">Tendencia de Mantenimientos Preventivos a lo largo de los meses</p>
+                    <h3 class="text-white font-semibold mb-1">Evolución de Cumplimiento (Histórico)</h3>
+                    <p class="text-xs text-slate-400 mb-4">Tendencia de Mantenimientos Preventivos a lo largo de los meses</p>
                     <div class="relative flex-grow w-full">
                         <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="expenseTrendContainer" class="bg-panel p-6 rounded-xl border border-slate-800 flex-col hidden" style="min-height: 20rem;">
+                    <h3 class="text-white font-semibold mb-1 text-annual">Tendencia Mensual de Gasto Presupuestal</h3>
+                    <p class="text-xs text-slate-400 mb-4">Presupuesto total ejercido mes a mes en moneda nacional</p>
+                    <div class="relative flex-grow w-full">
+                        <canvas id="expenseTrendChart"></canvas>
                     </div>
                 </div>
                 
@@ -220,6 +228,7 @@
         let budgetChartInstance = null;
         let downtimeChartInstance = null;
         let trendChartInstance = null;
+        let expenseTrendChartInstance = null;
 
         const mxnFormatter = new Intl.NumberFormat('es-MX', {
             style: 'currency',
@@ -313,7 +322,6 @@
                     ratioMC: Number(row.ratio_mc) || 0
                 };
 
-                // Si es la primera vez que vemos el mes, inicializamos la estructura y el histórico numérico
                 if (!dataSet[mes]) {
                     const option = document.createElement('option');
                     option.value = mes;
@@ -337,7 +345,6 @@
                     };
                 }
 
-                // Agregación aditiva de múltiples retos/hallazgos por periodo
                 if (row.reto_titulo || row.reto_desc) {
                     const retoTipo = String(row.reto_tipo || 'primary').trim();
                     let iconClass = retoTipo === 'danger' ? 'fa-triangle-exclamation' : (retoTipo === 'warning' ? 'fa-bolt' : (retoTipo === 'success' ? 'fa-check-double' : 'fa-thumbtack'));
@@ -353,7 +360,6 @@
 
             let keys = Object.keys(dataSet);
             if (keys.length > 0) {
-                // REQUERIMIENTO: Cargar de manera predeterminada el mes anterior a la fecha actual
                 let mesIdeal = obtenerMesAnterior();
                 if (dataSet[mesIdeal]) {
                     currentMonth = mesIdeal;
@@ -369,13 +375,16 @@
             const data = dataSet[monthKey];
             if(!data) return;
 
+            // Ocultar gráfica de gasto en vista mensual
+            document.getElementById('expenseTrendContainer').classList.add('hidden');
+            document.getElementById('expenseTrendContainer').classList.remove('flex');
+
             document.getElementById('dashboardTitle').innerHTML = `Indicadores de Ingeniería Biomédica <span class="text-primary text-xl ml-2 capitalize">(${monthKey})</span>`;
             document.getElementById('lbl-mp').innerText = "Cumplimiento MP";
             document.getElementById('lbl-mttr').innerText = "MTTR (Mensual)";
             document.getElementById('lbl-downtime').innerText = "Downtime (Mensual)";
             document.getElementById('title-retos').innerHTML = '<i class="fa-solid fa-thumbtack text-primary mr-2"></i>Retos y Hallazgos';
             
-            // Renderizado completo de la lista de retos (admite n elementos)
             const retosHTML = data.retos.length > 0 ? data.retos.map(r => {
                 let colorClass = r.tipo === 'danger' ? 'text-danger bg-danger/10 border-danger/30' : 
                                  r.tipo === 'warning' ? 'text-warning bg-warning/10 border-warning/30' : 
@@ -394,12 +403,16 @@
             document.getElementById('retosContainer').innerHTML = retosHTML;
 
             actualizarTarjetasYGraficas(data.kpis.mp_cumplimiento, data.kpis.mttr, data.kpis.downtime, data.kpis.budget_total, data.kpis.budget_mxn, data.charts.ratio_mp, data.charts.ratio_mc, data.charts.downtime_equipos, data.charts.budget_pct, data.finanzas);
-            renderTrendChart();
+            renderTrendCharts();
         }
 
         function renderAnnualDashboard() {
             let keys = Object.keys(dataSet);
             if(keys.length === 0) return;
+
+            // Mostrar gráfica de gasto en vista anual
+            document.getElementById('expenseTrendContainer').classList.remove('hidden');
+            document.getElementById('expenseTrendContainer').classList.add('flex');
 
             let sumMP = 0, sumMTTR = 0, count = 0, sumDown = [0, 0, 0, 0], sumAsigTotal = 0, sumEjerTotal = 0, sumAsigMtto = 0, sumEjerMtto = 0, sumRatioMP = 0, sumRatioMC = 0;
 
@@ -419,11 +432,10 @@
             document.getElementById('title-retos').innerHTML = '<i class="fa-solid fa-chart-line text-annual mr-2"></i>Resumen Estratégico';
             
             document.getElementById('retosContainer').innerHTML = `<div class="flex gap-4 items-start p-3 bg-dark rounded-lg border border-slate-700/50"><div class="p-2 rounded-full mt-1 text-annual bg-annual/10"><i class="fa-solid fa-calendar-check fa-fw"></i></div><div><h4 class="text-white text-sm font-semibold">Vista Consolidada</h4><p class="text-slate-400 text-xs mt-1 leading-relaxed">Calculando promedios y sumas en base a ${count} meses operativos registrados.</p></div></div>`;
-            renderTrendChart();
+            renderTrendCharts();
         }
 
         function actualizarTarjetasYGraficas(mp, mttr, downtime, bgTotal, bgMxn, ratioMp, ratioMc, arrDown, arrBg, finanzas) {
-            // REQUERIMIENTO: Ajuste de semaforización basada en meta > 95%
             const kpiMpEl = document.getElementById('kpi-mp');
             const statusMp = document.getElementById('kpi-mp-status');
             kpiMpEl.innerText = mp + '%';
@@ -486,31 +498,21 @@
             });
         }
 
-        // REQUERIMIENTO: Gráfico de Líneas con Lógica Dual Adaptable (MP vs Gasto Mensual)
-        function renderTrendChart() {
+        function renderTrendCharts() {
+            // 1. Gráfica de Cumplimiento MP (Siempre visible en todas las vistas)
             if(trendChartInstance) trendChartInstance.destroy();
-            
-            // Si está en vista anual, grafica la tendencia de gasto presupuestal; si no, grafica el cumplimiento de MP
-            let labelText = isAnnualView ? 'Gasto Mensual Total (MXN)' : '% de Cumplimiento MP';
-            let dataPoints = isAnnualView ? historicoGastoTotal : historicoMP;
-            let borderColor = isAnnualView ? '#8b5cf6' : '#38bdf8'; 
-            let bgColor = isAnnualView ? 'rgba(139, 92, 246, 0.1)' : 'rgba(56, 189, 248, 0.1)';
-            
-            document.getElementById('trendChartTitle').innerText = isAnnualView ? "Tendencia Mensual de Gasto Presupuestal" : "Evolución de Cumplimiento (Histórico)";
-            document.getElementById('trendChartSubtitle').innerText = isAnnualView ? "Presupuesto total ejercido mes a mes en moneda nacional" : "Tendencia de Mantenimientos Preventivos a lo largo de los meses";
-
             trendChartInstance = new Chart(document.getElementById('trendChart'), {
                 type: 'line',
                 data: {
                     labels: historicoMeses,
                     datasets: [{
-                        label: labelText,
-                        data: dataPoints,
-                        borderColor: borderColor,
-                        backgroundColor: bgColor,
+                        label: '% de Cumplimiento MP',
+                        data: historicoMP,
+                        borderColor: '#38bdf8',
+                        backgroundColor: 'rgba(56, 189, 248, 0.1)',
                         borderWidth: 3,
                         pointBackgroundColor: '#0f172a',
-                        pointBorderColor: borderColor,
+                        pointBorderColor: '#38bdf8',
                         pointBorderWidth: 2,
                         pointRadius: 4,
                         fill: true,
@@ -526,29 +528,58 @@
                             mode: 'index', 
                             intersect: false,
                             callbacks: {
-                                label: function(context) {
-                                    let value = context.parsed.y;
-                                    return isAnnualView ? mxnFormatter.format(value) : value + '%';
-                                }
+                                label: function(context) { return context.parsed.y + '%'; }
                             }
                         }
                     },
                     scales: {
-                        y: { 
-                            beginAtZero: isAnnualView,
-                            min: isAnnualView ? undefined : 50, 
-                            max: isAnnualView ? undefined : 100, 
-                            grid: { color: '#1e293b' },
-                            ticks: { 
-                                callback: function(value) { 
-                                    return isAnnualView ? mxnFormatter.format(value) : value + "%"; 
-                                } 
-                            }
-                        },
+                        y: { min: 50, max: 100, grid: { color: '#1e293b' }, ticks: { callback: function(value) { return value + "%"; } } },
                         x: { grid: { display: false } }
                     }
                 }
             });
+
+            // 2. Gráfica de Tendencia de Gasto (Solo se renderiza si estamos en Vista Anual)
+            if (isAnnualView) {
+                if(expenseTrendChartInstance) expenseTrendChartInstance.destroy();
+                expenseTrendChartInstance = new Chart(document.getElementById('expenseTrendChart'), {
+                    type: 'line',
+                    data: {
+                        labels: historicoMeses,
+                        datasets: [{
+                            label: 'Gasto Mensual Total (MXN)',
+                            data: historicoGastoTotal,
+                            borderColor: '#8b5cf6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#0f172a',
+                            pointBorderColor: '#8b5cf6',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { 
+                                mode: 'index', 
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) { return mxnFormatter.format(context.parsed.y); }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { callback: function(value) { return mxnFormatter.format(value); } } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
         }
     </script>
 </body>
