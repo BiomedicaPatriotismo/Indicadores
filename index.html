@@ -34,21 +34,41 @@
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Estilos de impresión para directivos */
+        @media print {
+            body { background-color: white !important; color: black !important; }
+            .bg-dark, .bg-panel { background-color: white !important; border: 1px solid #e2e8f0 !important; }
+            .text-white { color: #0f172a !important; }
+            .text-slate-400 { color: #475569 !important; }
+            .no-print { display: none !important; }
+            canvas { max-height: 300px !important; }
+            .shadow-lg, .shadow-inner { box-shadow: none !important; }
+        }
     </style>
 </head>
-<body class="bg-dark text-slate-200 p-0 md:p-8 relative min-h-screen">
+<body class="bg-dark text-slate-200 p-0 md:p-8 relative min-h-screen flex flex-col">
 
-    <div id="mainDashboard" class="max-w-7xl mx-auto flex flex-col gap-6">
+    <!-- Pantalla de Error (Fallback) -->
+    <div id="errorOverlay" class="hidden absolute inset-0 z-50 bg-dark flex-col items-center justify-center text-center p-6">
+        <i class="fa-solid fa-triangle-exclamation text-6xl text-danger mb-4 animate-pulse"></i>
+        <h2 class="text-2xl font-bold text-white mb-2">Error de Conexión a la Nube</h2>
+        <p class="text-slate-400 max-w-md">No se pudo recuperar la información actualizada del origen de datos. Verifique la conexión a internet o contacte a soporte técnico.</p>
+        <button onclick="location.reload()" class="mt-6 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors border border-slate-600">Reintentar</button>
+    </div>
+
+    <div id="mainDashboard" class="max-w-7xl mx-auto flex flex-col gap-6 w-full opacity-50 transition-opacity duration-500">
         
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-panel p-6 rounded-xl border border-slate-800 shadow-lg">
             <div>
                 <h1 id="dashboardTitle" class="text-2xl md:text-3xl font-bold text-white tracking-tight">Indicadores de Ingeniería Biomédica</h1>
                 <p id="dashboardSubtitle" class="text-slate-400 mt-1"><i class="fa-regular fa-hospital mr-2"></i>Hospital San Ángel Inn Patriotismo</p>
+                <p class="text-xs text-slate-500 mt-2 font-mono"><i class="fa-solid fa-link text-success mr-1"></i> Origen de datos: Órdenes de trabajo automatizadas (Jotform)</p>
             </div>
             
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3 no-print">
                 <div id="syncIndicator" class="flex items-center text-sm font-medium text-amber-400 bg-amber-400/10 px-3 py-2 rounded-full border border-amber-400/20">
-                    <i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Conectando a la nube...
+                    <i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Procesando datos...
                 </div>
 
                 <button id="btnAnual" class="bg-annual hover:bg-violet-400 text-white font-bold py-1.5 px-4 rounded-lg transition-colors shadow-[0_0_10px_rgba(139,92,246,0.3)] flex items-center border border-violet-500">
@@ -60,10 +80,14 @@
                     <select id="monthSelector" class="bg-dark text-white border-none rounded px-3 py-1 outline-none cursor-pointer focus:ring-0">
                         <option value="">Cargando...</option>
                     </select>
+                    <button onclick="window.print()" class="text-slate-400 hover:text-white px-2" title="Imprimir Reporte">
+                        <i class="fa-solid fa-print"></i>
+                    </button>
                 </div>
             </div>
         </header>
 
+        <!-- KPIs Principales -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-panel p-5 rounded-xl border border-slate-800 flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
@@ -71,8 +95,11 @@
                     <div class="p-2 bg-slate-800/50 rounded-lg text-primary"><i class="fa-solid fa-clipboard-check"></i></div>
                 </div>
                 <div>
-                    <h3 class="text-3xl font-bold text-white" id="kpi-mp">--%</h3>
-                    <p class="text-xs text-slate-500 mt-1">Mantenimientos preventivos</p>
+                    <h3 class="text-3xl font-bold transition-colors" id="kpi-mp">--%</h3>
+                    <p class="text-xs text-slate-500 mt-1 flex justify-between">
+                        <span>Meta: >90%</span>
+                        <span id="kpi-mp-status"></span>
+                    </p>
                 </div>
             </div>
 
@@ -82,8 +109,11 @@
                     <div class="p-2 bg-slate-800/50 rounded-lg text-primary"><i class="fa-solid fa-stopwatch"></i></div>
                 </div>
                 <div>
-                    <h3 class="text-3xl font-bold text-white"><span id="kpi-mttr">--</span> <span class="text-lg font-normal text-slate-400">hrs</span></h3>
-                    <p class="text-xs text-slate-500 mt-1">Tiempo Medio de Reparación</p>
+                    <h3 class="text-3xl font-bold transition-colors" id="kpi-mttr-wrapper"><span id="kpi-mttr">--</span> <span class="text-lg font-normal text-slate-400">hrs</span></h3>
+                    <p class="text-xs text-slate-500 mt-1 flex justify-between">
+                        <span>Meta: < 48 hrs</span>
+                        <span id="kpi-mttr-status"></span>
+                    </p>
                 </div>
             </div>
 
@@ -106,7 +136,7 @@
                 </div>
                 <div class="relative z-10">
                     <div class="flex items-baseline gap-2">
-                        <h3 class="text-3xl font-bold text-white" id="kpi-budget">--%</h3>
+                        <h3 class="text-3xl font-bold transition-colors" id="kpi-budget">--%</h3>
                         <span class="text-sm font-medium text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded" id="kpi-budget-mxn">$0.00</span>
                     </div>
                     <p class="text-xs text-slate-500 mt-1">Presupuesto total ejercido</p>
@@ -117,7 +147,8 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 flex flex-col gap-6">
                 
-                <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 24rem;">
+                <!-- Gráfico de Inactividad -->
+                <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 20rem;">
                     <h3 class="text-white font-semibold mb-1" id="title-downtime">Inactividad por Equipo Específico</h3>
                     <p class="text-xs text-slate-400 mb-4">Horas fuera de servicio para modalidades críticas</p>
                     <div class="relative flex-grow w-full">
@@ -125,6 +156,16 @@
                     </div>
                 </div>
 
+                <!-- Gráfico de Tendencia Histórica (NUEVO) -->
+                <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 20rem;">
+                    <h3 class="text-white font-semibold mb-1">Evolución de Cumplimiento (Histórico)</h3>
+                    <p class="text-xs text-slate-400 mb-4">Tendencia de Mantenimientos Preventivos a lo largo de los meses</p>
+                    <div class="relative flex-grow w-full">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Gráfico Financiero -->
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 24rem;">
                     <h3 class="text-white font-semibold mb-1">Estado Financiero (Asignado vs Ejercido)</h3>
                     <p class="text-xs text-slate-400 mb-4">Desglose porcentual y montos monetarios en MXN</p>
@@ -154,7 +195,8 @@
             </div>
 
             <div class="flex flex-col gap-6">
-                <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 24rem;">
+                <!-- Carga de Trabajo -->
+                <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 20rem;">
                     <h3 class="text-white font-semibold mb-1">Carga de Trabajo</h3>
                     <p class="text-xs text-slate-400 mb-2">Preventivo vs Correctivo</p>
                     <div class="relative w-full flex-grow flex items-center justify-center overflow-hidden">
@@ -162,10 +204,11 @@
                     </div>
                 </div>
 
+                <!-- Retos y Hallazgos -->
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex-grow flex flex-col" style="min-height: 24rem;">
                     <h3 class="text-white font-semibold mb-4 border-b border-slate-700 pb-2" id="title-retos"><i class="fa-solid fa-thumbtack text-primary mr-2"></i>Retos y Hallazgos</h3>
                     <div id="retosContainer" class="flex flex-col gap-3 overflow-y-auto pr-2 flex-grow">
-                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -175,11 +218,15 @@
         const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTpv30jyddCIL2Zwwkz_zlEk52O_Aa1iioBPZv90ZnjJ4uy7grVHbIcJQgIRP6xDvLJ53UJ396WfcZE/pub?output=csv"; 
 
         let dataSet = {};
+        let historicoMeses = [];
+        let historicoMP = [];
         let currentMonth = '';
         let isAnnualView = false;
+        
         let ratioChartInstance = null;
         let budgetChartInstance = null;
         let downtimeChartInstance = null;
+        let trendChartInstance = null;
 
         const mxnFormatter = new Intl.NumberFormat('es-MX', {
             style: 'currency',
@@ -205,6 +252,7 @@
                 renderAnnualDashboard();
             });
 
+            // Configuración Global Chart.js para contraste
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = "'Inter', sans-serif";
             Chart.defaults.plugins.tooltip.backgroundColor = '#1e293b';
@@ -222,26 +270,27 @@
                 header: true,
                 complete: function(results) {
                     procesarDatos(results.data);
+                    
+                    // Transición de opacidad al cargar
+                    document.getElementById('mainDashboard').classList.remove('opacity-50');
+                    document.getElementById('mainDashboard').classList.add('opacity-100');
+
                     sync.innerHTML = '<i class="fa-solid fa-cloud-arrow-down mr-2"></i>Sincronizado';
                     sync.className = "flex items-center text-sm font-medium text-success bg-success/10 px-3 py-1.5 rounded-full border border-success/20";
                 },
                 error: function(error) {
-                    sync.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-2"></i>Error de red';
-                    sync.className = "flex items-center text-sm font-medium text-danger bg-danger/10 px-3 py-1.5 rounded-full border border-danger/20";
+                    document.getElementById('mainDashboard').classList.add('hidden');
+                    document.getElementById('errorOverlay').classList.remove('hidden');
+                    document.getElementById('errorOverlay').classList.add('flex');
                 }
             });
         }
 
-        function obtenerMesAnterior() {
-            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-            let d = new Date();
-            let mesAnteriorIndex = d.getMonth() - 1; 
-            if (mesAnteriorIndex < 0) mesAnteriorIndex = 11; 
-            return meses[mesAnteriorIndex];
-        }
-
         function procesarDatos(rows) {
             dataSet = {}; 
+            historicoMeses = [];
+            historicoMP = [];
+            
             const selector = document.getElementById('monthSelector');
             selector.innerHTML = '<option value="" disabled>Seleccione...</option>'; 
 
@@ -253,10 +302,6 @@
                 option.value = mes;
                 option.text = mes.charAt(0).toUpperCase() + mes.slice(1);
                 selector.appendChild(option);
-
-                const retoTipo = String(row.reto_tipo || 'primary').trim();
-                const retoTitulo = String(row.reto_titulo || 'Operación Estable').trim();
-                const retoDesc = String(row.reto_desc || 'No hay hallazgos críticos registrados para este periodo.').trim();
 
                 const raw = {
                     mp: Number(row.mp_cumplimiento) || 0,
@@ -272,48 +317,34 @@
                     ratioMP: Number(row.ratio_mp) || 0,
                     ratioMC: Number(row.ratio_mc) || 0
                 };
+                
+                // Acumulación para el gráfico histórico
+                historicoMeses.push(option.text);
+                historicoMP.push(raw.mp);
 
                 const totalDowntime = raw.downReso + raw.downTomo + raw.downHemo + raw.downRayos;
                 const pctTotal = (raw.presTotalEjer / raw.presTotalAsig) * 100;
                 const pctMtto = (raw.presMttoEjer / raw.presMttoAsig) * 100;
-
-                let iconClass = 'fa-thumbtack';
-                if(retoTipo === 'danger') iconClass = 'fa-triangle-exclamation';
-                else if(retoTipo === 'warning') iconClass = 'fa-bolt';
-                else if(retoTipo === 'success') iconClass = 'fa-check-double';
+                
+                const retoTipo = String(row.reto_tipo || 'primary').trim();
+                let iconClass = retoTipo === 'danger' ? 'fa-triangle-exclamation' : (retoTipo === 'warning' ? 'fa-bolt' : (retoTipo === 'success' ? 'fa-check-double' : 'fa-thumbtack'));
 
                 dataSet[mes] = {
                     raw: raw,
-                    kpis: { 
-                        mp_cumplimiento: raw.mp, 
-                        mttr: raw.mttr, 
-                        downtime: totalDowntime, 
-                        budget_total: pctTotal,
-                        budget_mxn: raw.presTotalEjer
-                    },
-                    finanzas: {
-                        asigTotal: raw.presTotalAsig,
-                        ejerTotal: raw.presTotalEjer,
-                        asigMtto: raw.presMttoAsig,
-                        ejerMtto: raw.presMttoEjer
-                    },
+                    kpis: { mp_cumplimiento: raw.mp, mttr: raw.mttr, downtime: totalDowntime, budget_total: pctTotal, budget_mxn: raw.presTotalEjer },
+                    finanzas: { asigTotal: raw.presTotalAsig, ejerTotal: raw.presTotalEjer, asigMtto: raw.presMttoAsig, ejerMtto: raw.presMttoEjer },
                     charts: { ratio_mp: raw.ratioMP, ratio_mc: raw.ratioMC, downtime_equipos: [raw.downReso, raw.downTomo, raw.downHemo, raw.downRayos], budget_pct: [pctTotal, pctMtto] },
-                    retos: [
-                        { tipo: retoTipo, icon: iconClass, titulo: retoTitulo, desc: retoDesc }
-                    ]
+                    retos: [{ tipo: retoTipo, icon: iconClass, titulo: String(row.reto_titulo || 'Operación Estable'), desc: String(row.reto_desc || 'Sin incidentes.') }]
                 };
             });
 
             let keys = Object.keys(dataSet);
             if (keys.length > 0) {
-                let mesIdeal = obtenerMesAnterior();
-                if (dataSet[mesIdeal]) {
-                    currentMonth = mesIdeal;
-                } else {
-                    currentMonth = keys[keys.length - 1]; 
-                }
+                // Autoseleccionar el último mes disponible
+                currentMonth = keys[keys.length - 1]; 
                 selector.value = currentMonth;
                 renderDashboard(currentMonth);
+                renderTrendChart();
             }
         }
 
@@ -322,21 +353,18 @@
             if(!data) return;
 
             document.getElementById('dashboardTitle').innerHTML = `Indicadores de Ingeniería Biomédica <span class="text-primary text-xl ml-2 capitalize">(${monthKey})</span>`;
-            document.getElementById('dashboardSubtitle').innerHTML = `<i class="fa-regular fa-hospital mr-2"></i>Hospital San Ángel Inn Patriotismo`;
             
             document.getElementById('lbl-mp').innerText = "Cumplimiento MP";
             document.getElementById('lbl-mttr').innerText = "MTTR (Mensual)";
             document.getElementById('lbl-downtime').innerText = "Downtime (Mensual)";
-            document.getElementById('title-downtime').innerText = "Inactividad por Equipo Específico";
-            document.getElementById('title-retos').innerHTML = '<i class="fa-solid fa-thumbtack text-primary mr-2"></i>Retos y Hallazgos';
             
             const retosHTML = data.retos.map(r => {
-                let colorClass = r.tipo === 'danger' ? 'text-danger bg-danger/10' : 
-                                 r.tipo === 'warning' ? 'text-warning bg-warning/10' : 
-                                 r.tipo === 'success' ? 'text-success bg-success/10' : 'text-primary bg-primary/10';
+                let colorClass = r.tipo === 'danger' ? 'text-danger bg-danger/10 border-danger/30' : 
+                                 r.tipo === 'warning' ? 'text-warning bg-warning/10 border-warning/30' : 
+                                 r.tipo === 'success' ? 'text-success bg-success/10 border-success/30' : 'text-primary bg-primary/10 border-primary/30';
                 return `
-                    <div class="flex gap-4 items-start p-3 bg-dark rounded-lg border border-slate-700/50">
-                        <div class="p-2 rounded-full mt-1 ${colorClass}"><i class="fa-solid ${r.icon} fa-fw"></i></div>
+                    <div class="flex gap-4 items-start p-3 bg-dark rounded-lg border ${colorClass}">
+                        <div class="p-2 rounded-full mt-1"><i class="fa-solid ${r.icon} fa-fw"></i></div>
                         <div>
                             <h4 class="text-white text-sm font-semibold">${r.titulo}</h4>
                             <p class="text-slate-400 text-xs mt-1 leading-relaxed">${r.desc}</p>
@@ -346,148 +374,137 @@
             }).join('');
             document.getElementById('retosContainer').innerHTML = retosHTML;
 
-            actualizarTarjetasYGraficas(
-                data.kpis.mp_cumplimiento, data.kpis.mttr, data.kpis.downtime, data.kpis.budget_total, data.kpis.budget_mxn,
-                data.charts.ratio_mp, data.charts.ratio_mc, data.charts.downtime_equipos, data.charts.budget_pct,
-                data.finanzas
-            );
+            actualizarTarjetasYGraficas(data.kpis.mp_cumplimiento, data.kpis.mttr, data.kpis.downtime, data.kpis.budget_total, data.kpis.budget_mxn, data.charts.ratio_mp, data.charts.ratio_mc, data.charts.downtime_equipos, data.charts.budget_pct, data.finanzas);
         }
 
         function renderAnnualDashboard() {
             let keys = Object.keys(dataSet);
             if(keys.length === 0) return;
 
-            let sumMP = 0, sumMTTR = 0, count = 0;
-            let sumDown = [0, 0, 0, 0];
-            let sumAsigTotal = 0, sumEjerTotal = 0, sumAsigMtto = 0, sumEjerMtto = 0;
-            let sumRatioMP = 0, sumRatioMC = 0;
+            let sumMP = 0, sumMTTR = 0, count = 0, sumDown = [0, 0, 0, 0], sumAsigTotal = 0, sumEjerTotal = 0, sumAsigMtto = 0, sumEjerMtto = 0, sumRatioMP = 0, sumRatioMC = 0;
 
             for (let m in dataSet) {
                 let r = dataSet[m].raw;
-                sumMP += r.mp;
-                sumMTTR += r.mttr;
+                sumMP += r.mp; sumMTTR += r.mttr;
                 sumDown[0] += r.downReso; sumDown[1] += r.downTomo; sumDown[2] += r.downHemo; sumDown[3] += r.downRayos;
-                sumAsigTotal += r.presTotalAsig; sumEjerTotal += r.presTotalEjer;
-                sumAsigMtto += r.presMttoAsig; sumEjerMtto += r.presMttoEjer;
-                sumRatioMP += r.ratioMP; sumRatioMC += r.ratioMC;
-                count++;
+                sumAsigTotal += r.presTotalAsig; sumEjerTotal += r.presTotalEjer; sumAsigMtto += r.presMttoAsig; sumEjerMtto += r.presMttoEjer;
+                sumRatioMP += r.ratioMP; sumRatioMC += r.ratioMC; count++;
             }
 
-            let avgMP = (sumMP / count).toFixed(1);
-            let avgMTTR = (sumMTTR / count).toFixed(1);
-            let totalDowntime = sumDown.reduce((a,b)=>a+b, 0);
+            actualizarTarjetasYGraficas((sumMP/count).toFixed(1), (sumMTTR/count).toFixed(1), sumDown.reduce((a,b)=>a+b, 0), (sumAsigTotal ? ((sumEjerTotal/sumAsigTotal)*100) : 0), sumEjerTotal, (sumRatioMP/count), (sumRatioMC/count), sumDown, [(sumAsigTotal ? ((sumEjerTotal/sumAsigTotal)*100) : 0), (sumAsigMtto ? ((sumEjerMtto/sumAsigMtto)*100) : 0)], {asigTotal: sumAsigTotal, ejerTotal: sumEjerTotal, asigMtto: sumAsigMtto, ejerMtto: sumEjerMtto});
             
-            let pctTotalAnual = sumAsigTotal ? ((sumEjerTotal / sumAsigTotal) * 100) : 0;
-            let pctMttoAnual = sumAsigMtto ? ((sumEjerMtto / sumAsigMtto) * 100) : 0;
-            
-            let avgRatioMP = sumRatioMP / count;
-            let avgRatioMC = sumRatioMC / count;
-
-            let finanzasAnual = {
-                asigTotal: sumAsigTotal,
-                ejerTotal: sumEjerTotal,
-                asigMtto: sumAsigMtto,
-                ejerMtto: sumEjerMtto
-            };
-
             document.getElementById('dashboardTitle').innerHTML = `Indicadores de Ingeniería Biomédica <span class="text-annual text-xl ml-2">(Acumulado Anual)</span>`;
-            document.getElementById('dashboardSubtitle').innerHTML = `<i class="fa-regular fa-hospital mr-2"></i>Hospital San Ángel Inn Patriotismo`;
-            
             document.getElementById('lbl-mp').innerText = "Promedio MP Anual";
             document.getElementById('lbl-mttr').innerText = "Promedio MTTR Anual";
-            document.getElementById('lbl-downtime').innerText = "Downtime Total Acumulado";
-            document.getElementById('title-downtime').innerText = "Inactividad Histórica por Equipo";
-            document.getElementById('title-retos').innerHTML = '<i class="fa-solid fa-chart-line text-annual mr-2"></i>Resumen Estratégico';
             
-            document.getElementById('retosContainer').innerHTML = `
-                <div class="flex gap-4 items-start p-3 bg-dark rounded-lg border border-slate-700/50">
-                    <div class="p-2 rounded-full mt-1 text-annual bg-annual/10"><i class="fa-solid fa-calendar-check fa-fw"></i></div>
-                    <div>
-                        <h4 class="text-white text-sm font-semibold">Vista Consolidada</h4>
-                        <p class="text-slate-400 text-xs mt-1 leading-relaxed">Calculando promedios y sumas en base a ${count} meses registrados en el sistema.</p>
-                    </div>
-                </div>`;
-
-            actualizarTarjetasYGraficas(
-                avgMP, avgMTTR, totalDowntime, pctTotalAnual, sumEjerTotal,
-                avgRatioMP, avgRatioMC, sumDown, [pctTotalAnual, pctMttoAnual],
-                finanzasAnual
-            );
+            document.getElementById('retosContainer').innerHTML = `<div class="flex gap-4 items-start p-3 bg-dark rounded-lg border border-slate-700/50"><div class="p-2 rounded-full mt-1 text-annual bg-annual/10"><i class="fa-solid fa-calendar-check fa-fw"></i></div><div><h4 class="text-white text-sm font-semibold">Vista Consolidada</h4><p class="text-slate-400 text-xs mt-1 leading-relaxed">Calculando promedios y sumas en base a ${count} meses registrados.</p></div></div>`;
         }
 
         function actualizarTarjetasYGraficas(mp, mttr, downtime, bgTotal, bgMxn, ratioMp, ratioMc, arrDown, arrBg, finanzas) {
-            document.getElementById('kpi-mp').innerText = mp + '%';
+            // Lógica de colores (Semaforización Directiva)
+            const kpiMpEl = document.getElementById('kpi-mp');
+            const statusMp = document.getElementById('kpi-mp-status');
+            kpiMpEl.innerText = mp + '%';
+            if (mp >= 90) {
+                kpiMpEl.className = 'text-3xl font-bold text-success';
+                statusMp.innerHTML = '<i class="fa-solid fa-circle-check text-success"></i>';
+            } else if (mp >= 80) {
+                kpiMpEl.className = 'text-3xl font-bold text-warning';
+                statusMp.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-warning"></i>';
+            } else {
+                kpiMpEl.className = 'text-3xl font-bold text-danger';
+                statusMp.innerHTML = '<i class="fa-solid fa-circle-xmark text-danger"></i>';
+            }
+
+            const kpiMttrWrapper = document.getElementById('kpi-mttr-wrapper');
+            const statusMttr = document.getElementById('kpi-mttr-status');
             document.getElementById('kpi-mttr').innerText = mttr;
+            if (mttr <= 48) {
+                kpiMttrWrapper.className = 'text-3xl font-bold text-success';
+                statusMttr.innerHTML = '<i class="fa-solid fa-circle-check text-success"></i>';
+            } else if (mttr <= 72) {
+                kpiMttrWrapper.className = 'text-3xl font-bold text-warning';
+                statusMttr.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-warning"></i>';
+            } else {
+                kpiMttrWrapper.className = 'text-3xl font-bold text-danger';
+                statusMttr.innerHTML = '<i class="fa-solid fa-circle-xmark text-danger"></i>';
+            }
+
             document.getElementById('kpi-downtime').innerText = downtime;
-            document.getElementById('kpi-budget').innerText = Number(bgTotal).toFixed(1) + '%';
+            
+            const kpiBudgetEl = document.getElementById('kpi-budget');
+            kpiBudgetEl.innerText = Number(bgTotal).toFixed(1) + '%';
+            kpiBudgetEl.className = `text-3xl font-bold ${bgTotal > 100 ? 'text-danger' : 'text-white'}`;
             document.getElementById('kpi-budget-mxn').innerText = mxnFormatter.format(bgMxn);
 
-            // Actualizar Cajas de Presupuesto
             document.getElementById('lbl-asig-total').innerText = mxnFormatter.format(finanzas.asigTotal);
             document.getElementById('lbl-ejer-total').innerText = mxnFormatter.format(finanzas.ejerTotal);
             document.getElementById('lbl-asig-mtto').innerText = mxnFormatter.format(finanzas.asigMtto);
             document.getElementById('lbl-ejer-mtto').innerText = mxnFormatter.format(finanzas.ejerMtto);
 
-            const budgetCardBg = document.getElementById('bg-alert-budget');
-            const budgetIcon = document.getElementById('icon-budget');
-            if(bgTotal > 100 || arrBg[1] > 100) {
-                budgetCardBg.classList.remove('hidden');
-                budgetIcon.className = "p-2 bg-slate-800/50 rounded-lg text-danger z-10 relative";
-            } else {
-                budgetCardBg.classList.add('hidden');
-                budgetIcon.className = "p-2 bg-slate-800/50 rounded-lg text-success z-10 relative";
-            }
-
+            // Gráficos
             if(ratioChartInstance) ratioChartInstance.destroy();
             ratioChartInstance = new Chart(document.getElementById('ratioChart'), {
                 type: 'doughnut',
-                data: {
-                    labels: ['Preventivo (MP)', 'Correctivo (MC)'],
-                    datasets: [{ data: [ratioMp, ratioMc], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0, hoverOffset: 4 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' } } } }
+                data: { labels: ['Preventivo (MP)', 'Correctivo (MC)'], datasets: [{ data: [ratioMp, ratioMc], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true } } } }
             });
 
             if(downtimeChartInstance) downtimeChartInstance.destroy();
             downtimeChartInstance = new Chart(document.getElementById('downtimeChart'), {
                 type: 'bar',
-                data: {
-                    labels: ['Resonancia', 'Tomografía', 'Hemodinamia', 'Rayos X'],
-                    datasets: [{ label: 'Horas de Inactividad', data: arrDown, backgroundColor: ['#f43f5e', '#f59e0b', '#38bdf8', '#10b981'], borderRadius: 4 }]
-                },
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#1e293b' }, title: { display: true, text: 'Horas Totales', color: '#64748b' } }, y: { grid: { display: false } } } }
+                data: { labels: ['Resonancia', 'Tomografía', 'Hemodinamia', 'Rayos X'], datasets: [{ label: 'Horas', data: arrDown, backgroundColor: ['#f43f5e', '#f59e0b', '#38bdf8', '#10b981'], borderRadius: 4 }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { suggestedMax: 100, grid: { color: '#1e293b' } }, y: { grid: { display: false } } } }
             });
 
             if(budgetChartInstance) budgetChartInstance.destroy();
-            const bgColors = arrBg.map(val => val > 100 ? '#f43f5e' : '#38bdf8');
             budgetChartInstance = new Chart(document.getElementById('budgetChart'), {
                 type: 'bar',
+                data: { labels: ['Total Depto.', 'Refacciones / Mtto.'], datasets: [{ label: '% Ejercido', data: arrBg, backgroundColor: arrBg.map(val => val > 100 ? '#f43f5e' : '#38bdf8'), borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: Math.max(120, ...arrBg) + 10, grid: { color: '#1e293b' } }, x: { grid: { display: false } } }, animation: { onComplete: function() { const ctx = this.ctx; const y100 = this.scales.y.getPixelForValue(100); ctx.save(); ctx.beginPath(); ctx.moveTo(this.chartArea.left, y100); ctx.lineTo(this.chartArea.right, y100); ctx.lineWidth = 2; ctx.strokeStyle = '#f43f5e'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.restore(); } } }
+            });
+        }
+
+        function renderTrendChart() {
+            if(trendChartInstance) trendChartInstance.destroy();
+            trendChartInstance = new Chart(document.getElementById('trendChart'), {
+                type: 'line',
                 data: {
-                    labels: ['Total Depto.', 'Refacciones / Mtto.'],
-                    datasets: [{ label: '% Ejercido', data: arrBg, backgroundColor: bgColors, borderRadius: 4 }]
+                    labels: historicoMeses,
+                    datasets: [{
+                        label: '% de Cumplimiento MP',
+                        data: historicoMP,
+                        borderColor: '#38bdf8',
+                        backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#0f172a',
+                        pointBorderColor: '#38bdf8',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.4
+                    }]
                 },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { display: false }, 
-                        tooltip: { 
-                            callbacks: { 
-                                label: function(ctx) { 
-                                    let idx = ctx.dataIndex;
-                                    let perc = ctx.parsed.y.toFixed(1) + '%';
-                                    let asig = idx === 0 ? finanzas.asigTotal : finanzas.asigMtto;
-                                    let ejer = idx === 0 ? finanzas.ejerTotal : finanzas.ejerMtto;
-                                    return [
-                                        'Avance: ' + perc,
-                                        'Presupuestado: ' + mxnFormatter.format(asig),
-                                        'Gastado: ' + mxnFormatter.format(ejer)
-                                    ];
-                                } 
-                            } 
-                        } 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { mode: 'index', intersect: false }
                     },
-                    scales: { y: { beginAtZero: true, max: Math.max(120, ...arrBg) + 10, grid: { color: '#1e293b' }, ticks: { callback: function(val){ return val + '%' } } }, x: { grid: { display: false } } },
-                    animation: { onComplete: function() { const ctx = this.ctx; const y100 = this.scales.y.getPixelForValue(100); ctx.save(); ctx.beginPath(); ctx.moveTo(this.chartArea.left, y100); ctx.lineTo(this.chartArea.right, y100); ctx.lineWidth = 2; ctx.strokeStyle = '#f43f5e'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.restore(); } }
+                    scales: {
+                        y: { 
+                            min: 50, max: 100, 
+                            grid: { color: '#1e293b' },
+                            ticks: { callback: function(value) { return value + "%" } }
+                        },
+                        x: { grid: { display: false } }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
                 }
             });
         }
