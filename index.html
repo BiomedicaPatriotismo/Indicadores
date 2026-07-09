@@ -23,6 +23,17 @@
                         warning: '#f59e0b', 
                         danger: '#f43f5e',  
                         annual: '#8b5cf6',  
+                    },
+                    animation: {
+                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+                    },
+                    keyframes: {
+                        shake: {
+                            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                            '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                            '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+                        }
                     }
                 }
             }
@@ -35,83 +46,184 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        /* REGLAS MEJORADAS DE IMPRESIÓN */
+        /* =========================================================
+           REGLAS ESTRICTAS DE IMPRESIÓN VERTICAL (PORTRAIT)
+           ========================================================= */
         @media print {
             @page { 
-                size: landscape; /* Fuerza el modo horizontal para mejor visualización */
-                margin: 1cm; 
+                size: portrait; /* Formato Vertical */
+                margin: 0.5cm;  /* Márgenes mínimos para aprovechar espacio */
             }
-            body { background-color: white !important; color: black !important; }
+
+            /* 1. Limpieza General y Colores */
+            body, html { 
+                background-color: white !important; 
+                color: black !important; 
+                font-size: 11pt !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
             .bg-dark, .bg-panel { 
                 background-color: white !important; 
-                border: 1px solid #cbd5e1 !important; 
+                border: none !important; /* Quitar bordes gruesos */
+                border-bottom: 1px solid #cbd5e1 !important; /* Separador sutil */
                 box-shadow: none !important; 
+                border-radius: 0 !important;
+                padding: 10px 0 !important; /* Reducir padding excesivo */
             }
             .text-white { color: #0f172a !important; }
-            .text-slate-400, .text-slate-500 { color: #475569 !important; }
+            .text-slate-400, .text-slate-500, .text-slate-300 { color: #475569 !important; }
+            .border-slate-800, .border-slate-700 { border-color: #e2e8f0 !important; }
+            
+            /* Mantener colores semánticos en texto si es posible */
             .text-primary { color: #0284c7 !important; }
-            .text-annual { color: #7c3aed !important; }
-            .no-print { display: none !important; }
-            
-            /* KPIs: Ajustamos a una grilla de 2 columnas o 4 en landscape */
-            .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 {
-                display: grid !important;
-                grid-template-columns: repeat(4, 1fr) !important;
-                gap: 1rem !important;
+            .text-danger { color: #dc2626 !important; }
+            .text-success { color: #16a34a !important; }
+            .text-warning { color: #d97706 !important; }
+
+            /* Elementos a Ocultar */
+            .no-print, #loginScreen, #syncIndicator, header select, header button, .fa-lock, .fa-print { 
+                display: none !important; 
             }
 
-            /* Contenido Principal: Apilamos todas las tarjetas para evitar superposición */
-            .grid-cols-1.lg\:grid-cols-3 { display: block !important; }
-            .grid-cols-1.lg\:grid-cols-3 > div { width: 100% !important; display: block !important; margin-bottom: 0 !important; }
-            
-            /* Tarjetas y saltos de página */
-            .bg-panel { 
-                margin-bottom: 1.5rem !important; 
-                page-break-inside: avoid !important;
-                min-height: auto !important;
-                height: auto !important;
-            }
-
-            /* Contenedores de Gráficas: Restricción estricta de ancho y alto */
-            .bg-panel > div.relative {
-                height: 250px !important; /* Altura controlada para el papel */
+            /* Asegurar visibilidad */
+            #mainDashboard { 
+                display: block !important; 
+                opacity: 1 !important; 
                 width: 100% !important;
                 max-width: 100% !important;
             }
-            canvas { 
-                width: 100% !important; 
-                max-width: 100% !important;
-                height: 100% !important; 
+
+            /* 2. Reestructuración del Layout (Apilamiento Vertical) */
+            /* Cabecera */
+            header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                border-bottom: 2px solid #0f172a !important;
+                margin-bottom: 10px !important;
+                padding-bottom: 5px !important;
+            }
+            header h1 { font-size: 18pt !important; margin-bottom: 2px !important; }
+            header p { margin-top: 0 !important; font-size: 10pt !important; }
+
+            /* Tarjetas de KPIs Superiores (Grid 2x2 para papel) */
+            .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 5px !important;
+                margin-bottom: 10px !important;
+            }
+            .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 > div {
+                border: 1px solid #cbd5e1 !important; /* Borde sutil para tarjetas KPI */
+                padding: 8px !important;
+                page-break-inside: avoid !important;
+            }
+            .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 h3 { font-size: 16pt !important; }
+
+            /* Contenedor Principal de Gráficos (Quitar Flex/Grid, hacer Bloques) */
+            .grid-cols-1.lg\:grid-cols-3 {
+                display: block !important;
+                width: 100% !important;
+            }
+            .lg\:col-span-2, .flex.flex-col.gap-6 {
+                display: block !important;
+                width: 100% !important;
+                gap: 0 !important; /* Quitamos gap flex */
             }
 
-            /* Quitar el scroll de retos para que se impriman todos */
+            /* 3. Control Estricto de Contenedores de Gráficas */
+            .bg-panel[style*="min-height"] {
+                min-height: auto !important; /* Deshabilitar min-height de pantalla */
+                height: auto !important;
+                margin-bottom: 15px !important; /* Espacio entre gráficos */
+                page-break-inside: avoid !important; /* Evitar que el gráfico se corte por la mitad */
+            }
+
+            /* Limitar la altura de los contenedores Canvas explícitamente */
+            div.relative.flex-grow.w-full, div.relative.w-full.flex-grow {
+                height: 220px !important; /* Alto FIJO para impresión (clave para 2 hojas) */
+                width: 100% !important;
+                display: block !important;
+                position: relative !important;
+            }
+            
+            canvas { 
+                width: 100% !important; 
+                height: 100% !important; 
+                max-width: 100% !important;
+                max-height: 220px !important;
+            }
+
+            /* Ajustes específicos para tarjetas */
             #retosContainer {
                 max-height: none !important;
                 overflow: visible !important;
                 padding-right: 0 !important;
             }
             
-            /* Asegurar visibilidad sin transiciones de opacidad */
-            #mainDashboard { opacity: 1 !important; } 
+            #retosContainer > div {
+                border: 1px solid #e2e8f0 !important;
+                margin-bottom: 5px !important;
+                page-break-inside: avoid !important;
+            }
+
+            /* Forzar salto de página manual si es necesario (Opcional, usualmente evoid funciona bien) */
+            /* .page-break-before { page-break-before: always !important; } */
         }
     </style>
 </head>
-<body class="bg-dark text-slate-200 p-0 md:p-8 relative min-h-screen flex flex-col">
+<body class="bg-dark text-slate-200 p-0 md:p-8 relative min-h-screen flex flex-col items-center justify-center md:block">
 
-    <div id="errorOverlay" class="hidden absolute inset-0 z-50 bg-dark flex-col items-center justify-center text-center p-6">
+    <!-- PANTALLA DE LOGIN / ACCESO RESTRINGIDO -->
+    <div id="loginScreen" class="fixed inset-0 z-[100] bg-dark flex flex-col items-center justify-center p-4 no-print transition-opacity duration-300">
+        <div id="loginBox" class="bg-panel p-8 rounded-2xl border border-slate-800 shadow-2xl max-w-sm w-full text-center relative overflow-hidden">
+            <!-- Deco -->
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-annual"></div>
+            
+            <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-700 shadow-inner">
+                <i class="fa-solid fa-shield-halved text-2xl text-primary"></i>
+            </div>
+            
+            <h2 class="text-2xl font-bold text-white mb-1">Acceso Restringido</h2>
+            <p class="text-slate-400 text-sm mb-8"><i class="fa-regular fa-hospital mr-1"></i> Hospital San Ángel Inn</p>
+
+            <form id="loginForm" class="flex flex-col gap-4">
+                <div class="relative">
+                    <input type="password" id="accessCodeInput" placeholder="Código de acceso" 
+                           class="w-full bg-dark border border-slate-700 text-white rounded-lg px-10 py-3 text-center text-lg tracking-[0.2em] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-slate-600 placeholder:tracking-normal" 
+                           autocomplete="off" required>
+                    <i class="fa-solid fa-key absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                </div>
+                
+                <p id="loginError" class="text-danger text-xs font-medium bg-danger/10 border border-danger/20 py-2 rounded-lg hidden transition-all">
+                    Código incorrecto. Intente nuevamente.
+                </p>
+
+                <button type="submit" class="bg-primary hover:bg-sky-400 text-slate-900 font-bold py-3 px-4 rounded-lg transition-colors w-full shadow-[0_0_15px_rgba(56,189,248,0.2)] flex justify-center items-center">
+                    Ingresar al Dashboard <i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>
+                </button>
+            </form>
+            
+            <p class="text-slate-600 text-[10px] mt-6">Protección de Datos Directivos &copy; 2026</p>
+        </div>
+    </div>
+
+    <!-- Pantalla de Error (Fallback) -->
+    <div id="errorOverlay" class="hidden absolute inset-0 z-50 bg-dark flex-col items-center justify-center text-center p-6 no-print">
         <i class="fa-solid fa-triangle-exclamation text-6xl text-danger mb-4 animate-pulse"></i>
         <h2 class="text-2xl font-bold text-white mb-2">Error de Conexión a la Nube</h2>
         <p class="text-slate-400 max-w-md">No se pudo recuperar la información actualizada del origen de datos. Verifique la conexión o contacte a soporte técnico.</p>
         <button onclick="location.reload()" class="mt-6 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors border border-slate-600">Reintentar</button>
     </div>
 
-    <div id="mainDashboard" class="max-w-7xl mx-auto flex flex-col gap-6 w-full opacity-50 transition-opacity duration-500">
+    <!-- DASHBOARD PRINCIPAL -->
+    <div id="mainDashboard" class="max-w-7xl mx-auto hidden flex-col gap-6 w-full opacity-0 transition-opacity duration-500">
         
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-panel p-6 rounded-xl border border-slate-800 shadow-lg">
             <div>
                 <h1 id="dashboardTitle" class="text-2xl md:text-3xl font-bold text-white tracking-tight">Indicadores de Ingeniería Biomédica</h1>
                 <p id="dashboardSubtitle" class="text-slate-400 mt-1"><i class="fa-regular fa-hospital mr-2"></i>Hospital San Ángel Inn Patriotismo</p>
-                <p class="text-xs text-slate-500 mt-2 font-mono"><i class="fa-solid fa-link text-success mr-1"></i> Origen de datos: Órdenes de trabajo automatizadas (Jotform)</p>
+                <p class="text-xs text-slate-500 mt-2 font-mono"><i class="fa-solid fa-link text-success mr-1 no-print"></i> Origen de datos: Órdenes de trabajo automatizadas (Jotform)</p>
             </div>
             
             <div class="flex flex-wrap items-center gap-3 no-print">
@@ -128,8 +240,12 @@
                     <select id="monthSelector" class="bg-dark text-white border-none rounded px-3 py-1 outline-none cursor-pointer focus:ring-0">
                         <option value="">Cargando...</option>
                     </select>
-                    <button onclick="window.print()" class="text-slate-400 hover:text-white px-2" title="Imprimir Reporte">
+                    <button onclick="window.print()" class="text-slate-400 hover:text-white px-2 ml-1" title="Imprimir Reporte">
                         <i class="fa-solid fa-print"></i>
+                    </button>
+                    <!-- Botón para cerrar sesión/bloquear de nuevo -->
+                    <button id="btnLogout" class="text-slate-500 hover:text-danger px-2 border-l border-slate-700 ml-1 pl-3" title="Bloquear Pantalla">
+                        <i class="fa-solid fa-lock"></i>
                     </button>
                 </div>
             </div>
@@ -139,7 +255,7 @@
             <div class="bg-panel p-5 rounded-xl border border-slate-800 flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
                     <p class="text-slate-400 text-sm font-medium" id="lbl-mp">Cumplimiento MP</p>
-                    <div class="p-2 bg-slate-800/50 rounded-lg text-primary"><i class="fa-solid fa-clipboard-check"></i></div>
+                    <div class="p-2 bg-slate-800/50 rounded-lg text-primary no-print"><i class="fa-solid fa-clipboard-check"></i></div>
                 </div>
                 <div>
                     <h3 class="text-3xl font-bold transition-colors" id="kpi-mp">--%</h3>
@@ -153,7 +269,7 @@
             <div class="bg-panel p-5 rounded-xl border border-slate-800 flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
                     <p class="text-slate-400 text-sm font-medium" id="lbl-mttr">MTTR (Global)</p>
-                    <div class="p-2 bg-slate-800/50 rounded-lg text-primary"><i class="fa-solid fa-stopwatch"></i></div>
+                    <div class="p-2 bg-slate-800/50 rounded-lg text-primary no-print"><i class="fa-solid fa-stopwatch"></i></div>
                 </div>
                 <div>
                     <h3 class="text-3xl font-bold transition-colors" id="kpi-mttr-wrapper"><span id="kpi-mttr">--</span> <span class="text-lg font-normal text-slate-400">hrs</span></h3>
@@ -167,7 +283,7 @@
             <div class="bg-panel p-5 rounded-xl border border-slate-800 flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
                     <p class="text-slate-400 text-sm font-medium" id="lbl-downtime">Downtime Modalidades</p>
-                    <div class="p-2 bg-slate-800/50 rounded-lg text-danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="p-2 bg-slate-800/50 rounded-lg text-danger no-print"><i class="fa-solid fa-triangle-exclamation"></i></div>
                 </div>
                 <div>
                     <h3 class="text-3xl font-bold text-danger"><span id="kpi-downtime">--</span> <span class="text-lg font-normal text-slate-400">hrs</span></h3>
@@ -179,7 +295,7 @@
                 <div class="absolute inset-0 bg-danger/10 hidden" id="bg-alert-budget"></div>
                 <div class="flex justify-between items-start mb-2 relative z-10">
                     <p class="text-slate-400 text-sm font-medium">Ejecución Gasto</p>
-                    <div class="p-2 bg-slate-800/50 rounded-lg text-success" id="icon-budget"><i class="fa-solid fa-sack-dollar"></i></div>
+                    <div class="p-2 bg-slate-800/50 rounded-lg text-success no-print" id="icon-budget"><i class="fa-solid fa-sack-dollar"></i></div>
                 </div>
                 <div class="relative z-10">
                     <div class="flex items-baseline gap-2">
@@ -196,7 +312,7 @@
                 
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 20rem;">
                     <h3 class="text-white font-semibold mb-1" id="title-downtime">Inactividad por Equipo Específico</h3>
-                    <p class="text-xs text-slate-400 mb-4">Horas fuera de servicio para modalidades críticas</p>
+                    <p class="text-xs text-slate-400 mb-2">Horas fuera de servicio para modalidades críticas</p>
                     <div class="relative flex-grow w-full">
                         <canvas id="downtimeChart"></canvas>
                     </div>
@@ -204,7 +320,7 @@
 
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 20rem;">
                     <h3 class="text-white font-semibold mb-1">Evolución de Cumplimiento (Histórico)</h3>
-                    <p class="text-xs text-slate-400 mb-4">Tendencia de Mantenimientos Preventivos a lo largo de los meses</p>
+                    <p class="text-xs text-slate-400 mb-2">Tendencia de Mantenimientos Preventivos a lo largo de los meses</p>
                     <div class="relative flex-grow w-full">
                         <canvas id="trendChart"></canvas>
                     </div>
@@ -212,7 +328,7 @@
 
                 <div id="expenseTrendContainer" class="bg-panel p-6 rounded-xl border border-slate-800 flex-col hidden" style="min-height: 20rem;">
                     <h3 class="text-white font-semibold mb-1 text-annual">Tendencia Mensual de Gasto Presupuestal</h3>
-                    <p class="text-xs text-slate-400 mb-4">Presupuesto total ejercido mes a mes en moneda nacional</p>
+                    <p class="text-xs text-slate-400 mb-2">Presupuesto total ejercido mes a mes en moneda nacional</p>
                     <div class="relative flex-grow w-full">
                         <canvas id="expenseTrendChart"></canvas>
                     </div>
@@ -220,9 +336,9 @@
                 
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 24rem;">
                     <h3 class="text-white font-semibold mb-1">Estado Financiero (Asignado vs Ejercido)</h3>
-                    <p class="text-xs text-slate-400 mb-4">Desglose porcentual y montos monetarios en MXN</p>
+                    <p class="text-xs text-slate-400 mb-2">Desglose porcentual y montos monetarios en MXN</p>
                     
-                    <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="grid grid-cols-2 gap-3 mb-2">
                         <div class="bg-dark p-3 rounded-lg border border-slate-700/50">
                             <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-2">Total Depto.</p>
                             <div class="flex flex-col text-xs gap-1">
@@ -255,7 +371,7 @@
                     </div>
                 </div>
 
-                <div class="bg-panel p-6 rounded-xl border border-slate-800 flex-grow flex flex-col" style="min-height: 24rem;">
+                <div class="bg-panel p-6 rounded-xl border border-slate-800 flex-grow flex flex-col page-break-before" style="min-height: 24rem;">
                     <h3 class="text-white font-semibold mb-4 border-b border-slate-700 pb-2" id="title-retos"><i class="fa-solid fa-thumbtack text-primary mr-2"></i>Retos y Hallazgos</h3>
                     <div id="retosContainer" class="flex flex-col gap-3 overflow-y-auto pr-3 flex-grow max-h-[32rem]">
                     </div>
@@ -265,14 +381,11 @@
     </div>
 
     <script>
-        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTpv30jyddCIL2Zwwkz_zlEk52O_Aa1iioBPZv90ZnjJ4uy7grVHbIcJQgIRP6xDvLJ53UJ396WfcZE/pub?output=csv"; 
+        // ==============================================================================
+        // CONFIGURACIÓN DE SEGURIDAD
+        const CODIGO_ACCESO_CORRECTO = "ADMIN123"; 
 
-        let dataSet = {};
-        let historicoMeses = [];
-        let historicoMP = [];
-        let historicoGastoTotal = [];
-        let currentMonth = '';
-        let isAnnualView = false;
+        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTpv30jyddCIL2Zwwkz_zlEk52O_Aa1iioBPZv90ZnjJ4uy7grVHbIcJQgIRP6xDvLJ53UJ396WfcZE/pub?output=csv"; 
         
         let ratioChartInstance = null;
         let budgetChartInstance = null;
@@ -288,7 +401,37 @@
         });
 
         document.addEventListener("DOMContentLoaded", function() {
-            fetchGoogleSheetsData();
+            // VERIFICACIÓN DE SEGURIDAD INICIAL
+            if (sessionStorage.getItem('hsai_auth') === 'granted') {
+                mostrarDashboard();
+            } else {
+                document.getElementById('accessCodeInput').focus();
+            }
+
+            // EVENTO DE LOGIN
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const inputCode = document.getElementById('accessCodeInput').value;
+                const loginBox = document.getElementById('loginBox');
+                const errorMsg = document.getElementById('loginError');
+
+                if (inputCode === CODIGO_ACCESO_CORRECTO) {
+                    sessionStorage.setItem('hsai_auth', 'granted');
+                    mostrarDashboard();
+                } else {
+                    errorMsg.classList.remove('hidden');
+                    loginBox.classList.remove('animate-shake');
+                    void loginBox.offsetWidth; // trigger reflow
+                    loginBox.classList.add('animate-shake');
+                    document.getElementById('accessCodeInput').value = ""; // Limpiar input
+                }
+            });
+
+            // EVENTO DE CERRAR SESIÓN
+            document.getElementById('btnLogout').addEventListener('click', function() {
+                sessionStorage.removeItem('hsai_auth');
+                location.reload(); 
+            });
 
             document.getElementById('monthSelector').addEventListener('change', function(e) {
                 if(e.target.value) {
@@ -304,8 +447,16 @@
                 renderAnnualDashboard();
             });
 
-            // FIX DE IMPRESIÓN: Redimensionar las gráficas antes de que se genere la previsualización de impresión
+            // FIX DE IMPRESIÓN (Eventos Modificados)
             window.addEventListener('beforeprint', () => {
+                // Forzamos a Chart.js a redimensionar de acuerdo a los nuevos tamaños CSS de impresión
+                for (let id in Chart.instances) {
+                    Chart.instances[id].resize();
+                }
+            });
+
+            // Cuando termine la impresión, volvemos a redimensionar para pantalla
+            window.addEventListener('afterprint', () => {
                 for (let id in Chart.instances) {
                     Chart.instances[id].resize();
                 }
@@ -320,6 +471,27 @@
             Chart.defaults.plugins.tooltip.borderWidth = 1;
         });
 
+        // FUNCIÓN QUE LIBERA EL DASHBOARD Y COMIENZA A DESCARGAR DATOS
+        function mostrarDashboard() {
+            const loginScreen = document.getElementById('loginScreen');
+            loginScreen.classList.add('opacity-0');
+            
+            setTimeout(() => {
+                loginScreen.classList.add('hidden');
+                
+                const dash = document.getElementById('mainDashboard');
+                dash.classList.remove('hidden');
+                document.body.classList.remove('items-center', 'justify-center');
+                
+                setTimeout(() => {
+                    dash.classList.remove('opacity-0');
+                    dash.classList.add('opacity-100');
+                    fetchGoogleSheetsData(); 
+                }, 50);
+
+            }, 300); 
+        }
+
         function fetchGoogleSheetsData() {
             const sync = document.getElementById('syncIndicator');
             
@@ -328,8 +500,6 @@
                 header: true,
                 complete: function(results) {
                     procesarDatos(results.data);
-                    document.getElementById('mainDashboard').classList.remove('opacity-50');
-                    document.getElementById('mainDashboard').classList.add('opacity-100');
                     sync.innerHTML = '<i class="fa-solid fa-cloud-arrow-down mr-2"></i>Sincronizado';
                     sync.className = "flex items-center text-sm font-medium text-success bg-success/10 px-3 py-1.5 rounded-full border border-success/20";
                 },
@@ -541,6 +711,7 @@
             ratioChartInstance = new Chart(document.getElementById('ratioChart'), {
                 type: 'doughnut',
                 data: { labels: ['Preventivo (MP)', 'Correctivo (MC)'], datasets: [{ data: [ratioMp, ratioMc], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0 }] },
+                // options > maintainAspectRatio configurado en false asegura que tome el tamaño del contenedor parent
                 options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true } } } }
             });
 
