@@ -35,7 +35,6 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        /* Estilos de impresión para directivos */
         @media print {
             body { background-color: white !important; color: black !important; }
             .bg-dark, .bg-panel { background-color: white !important; border: 1px solid #e2e8f0 !important; }
@@ -49,11 +48,10 @@
 </head>
 <body class="bg-dark text-slate-200 p-0 md:p-8 relative min-h-screen flex flex-col">
 
-    <!-- Pantalla de Error (Fallback) -->
     <div id="errorOverlay" class="hidden absolute inset-0 z-50 bg-dark flex-col items-center justify-center text-center p-6">
         <i class="fa-solid fa-triangle-exclamation text-6xl text-danger mb-4 animate-pulse"></i>
         <h2 class="text-2xl font-bold text-white mb-2">Error de Conexión a la Nube</h2>
-        <p class="text-slate-400 max-w-md">No se pudo recuperar la información actualizada del origen de datos. Verifique la conexión a internet o contacte a soporte técnico.</p>
+        <p class="text-slate-400 max-w-md">No se pudo recuperar la información actualizada del origen de datos. Verifique la conexión o contacte a soporte técnico.</p>
         <button onclick="location.reload()" class="mt-6 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors border border-slate-600">Reintentar</button>
     </div>
 
@@ -87,7 +85,6 @@
             </div>
         </header>
 
-        <!-- KPIs Principales -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-panel p-5 rounded-xl border border-slate-800 flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
@@ -97,7 +94,7 @@
                 <div>
                     <h3 class="text-3xl font-bold transition-colors" id="kpi-mp">--%</h3>
                     <p class="text-xs text-slate-500 mt-1 flex justify-between">
-                        <span>Meta: >90%</span>
+                        <span>Meta: >95%</span>
                         <span id="kpi-mp-status"></span>
                     </p>
                 </div>
@@ -147,7 +144,6 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 flex flex-col gap-6">
                 
-                <!-- Gráfico de Inactividad -->
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 20rem;">
                     <h3 class="text-white font-semibold mb-1" id="title-downtime">Inactividad por Equipo Específico</h3>
                     <p class="text-xs text-slate-400 mb-4">Horas fuera de servicio para modalidades críticas</p>
@@ -156,16 +152,14 @@
                     </div>
                 </div>
 
-                <!-- Gráfico de Tendencia Histórica (NUEVO) -->
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 20rem;">
-                    <h3 class="text-white font-semibold mb-1">Evolución de Cumplimiento (Histórico)</h3>
-                    <p class="text-xs text-slate-400 mb-4">Tendencia de Mantenimientos Preventivos a lo largo de los meses</p>
+                    <h3 class="text-white font-semibold mb-1" id="trendChartTitle">Evolución de Cumplimiento (Histórico)</h3>
+                    <p class="text-xs text-slate-400 mb-4" id="trendChartSubtitle">Tendencia de Mantenimientos Preventivos a lo largo de los meses</p>
                     <div class="relative flex-grow w-full">
                         <canvas id="trendChart"></canvas>
                     </div>
                 </div>
                 
-                <!-- Gráfico Financiero -->
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 24rem;">
                     <h3 class="text-white font-semibold mb-1">Estado Financiero (Asignado vs Ejercido)</h3>
                     <p class="text-xs text-slate-400 mb-4">Desglose porcentual y montos monetarios en MXN</p>
@@ -195,7 +189,6 @@
             </div>
 
             <div class="flex flex-col gap-6">
-                <!-- Carga de Trabajo -->
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex flex-col" style="min-height: 20rem;">
                     <h3 class="text-white font-semibold mb-1">Carga de Trabajo</h3>
                     <p class="text-xs text-slate-400 mb-2">Preventivo vs Correctivo</p>
@@ -204,10 +197,9 @@
                     </div>
                 </div>
 
-                <!-- Retos y Hallazgos -->
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex-grow flex flex-col" style="min-height: 24rem;">
                     <h3 class="text-white font-semibold mb-4 border-b border-slate-700 pb-2" id="title-retos"><i class="fa-solid fa-thumbtack text-primary mr-2"></i>Retos y Hallazgos</h3>
-                    <div id="retosContainer" class="flex flex-col gap-3 overflow-y-auto pr-2 flex-grow">
+                    <div id="retosContainer" class="flex flex-col gap-3 overflow-y-auto pr-2 flex-grow max-h-[32rem]">
                     </div>
                 </div>
             </div>
@@ -220,6 +212,7 @@
         let dataSet = {};
         let historicoMeses = [];
         let historicoMP = [];
+        let historicoGastoTotal = [];
         let currentMonth = '';
         let isAnnualView = false;
         
@@ -252,7 +245,6 @@
                 renderAnnualDashboard();
             });
 
-            // Configuración Global Chart.js para contraste
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = "'Inter', sans-serif";
             Chart.defaults.plugins.tooltip.backgroundColor = '#1e293b';
@@ -270,11 +262,8 @@
                 header: true,
                 complete: function(results) {
                     procesarDatos(results.data);
-                    
-                    // Transición de opacidad al cargar
                     document.getElementById('mainDashboard').classList.remove('opacity-50');
                     document.getElementById('mainDashboard').classList.add('opacity-100');
-
                     sync.innerHTML = '<i class="fa-solid fa-cloud-arrow-down mr-2"></i>Sincronizado';
                     sync.className = "flex items-center text-sm font-medium text-success bg-success/10 px-3 py-1.5 rounded-full border border-success/20";
                 },
@@ -286,10 +275,19 @@
             });
         }
 
+        function obtenerMesAnterior() {
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            let d = new Date();
+            let mesAnteriorIndex = d.getMonth() - 1; 
+            if (mesAnteriorIndex < 0) mesAnteriorIndex = 11; 
+            return meses[mesAnteriorIndex];
+        }
+
         function procesarDatos(rows) {
             dataSet = {}; 
             historicoMeses = [];
             historicoMP = [];
+            historicoGastoTotal = [];
             
             const selector = document.getElementById('monthSelector');
             selector.innerHTML = '<option value="" disabled>Seleccione...</option>'; 
@@ -298,10 +296,7 @@
                 const mes = String(row.mes || '').trim().toLowerCase();
                 if (!mes) return;
 
-                const option = document.createElement('option');
-                option.value = mes;
-                option.text = mes.charAt(0).toUpperCase() + mes.slice(1);
-                selector.appendChild(option);
+                const mesFormateado = mes.charAt(0).toUpperCase() + mes.slice(1);
 
                 const raw = {
                     mp: Number(row.mp_cumplimiento) || 0,
@@ -317,34 +312,56 @@
                     ratioMP: Number(row.ratio_mp) || 0,
                     ratioMC: Number(row.ratio_mc) || 0
                 };
-                
-                // Acumulación para el gráfico histórico
-                historicoMeses.push(option.text);
-                historicoMP.push(raw.mp);
 
-                const totalDowntime = raw.downReso + raw.downTomo + raw.downHemo + raw.downRayos;
-                const pctTotal = (raw.presTotalEjer / raw.presTotalAsig) * 100;
-                const pctMtto = (raw.presMttoEjer / raw.presMttoAsig) * 100;
-                
-                const retoTipo = String(row.reto_tipo || 'primary').trim();
-                let iconClass = retoTipo === 'danger' ? 'fa-triangle-exclamation' : (retoTipo === 'warning' ? 'fa-bolt' : (retoTipo === 'success' ? 'fa-check-double' : 'fa-thumbtack'));
+                // Si es la primera vez que vemos el mes, inicializamos la estructura y el histórico numérico
+                if (!dataSet[mes]) {
+                    const option = document.createElement('option');
+                    option.value = mes;
+                    option.text = mesFormateado;
+                    selector.appendChild(option);
 
-                dataSet[mes] = {
-                    raw: raw,
-                    kpis: { mp_cumplimiento: raw.mp, mttr: raw.mttr, downtime: totalDowntime, budget_total: pctTotal, budget_mxn: raw.presTotalEjer },
-                    finanzas: { asigTotal: raw.presTotalAsig, ejerTotal: raw.presTotalEjer, asigMtto: raw.presMttoAsig, ejerMtto: raw.presMttoEjer },
-                    charts: { ratio_mp: raw.ratioMP, ratio_mc: raw.ratioMC, downtime_equipos: [raw.downReso, raw.downTomo, raw.downHemo, raw.downRayos], budget_pct: [pctTotal, pctMtto] },
-                    retos: [{ tipo: retoTipo, icon: iconClass, titulo: String(row.reto_titulo || 'Operación Estable'), desc: String(row.reto_desc || 'Sin incidentes.') }]
-                };
+                    historicoMeses.push(mesFormateado);
+                    historicoMP.push(raw.mp);
+                    historicoGastoTotal.push(raw.presTotalEjer);
+
+                    const totalDowntime = raw.downReso + raw.downTomo + raw.downHemo + raw.downRayos;
+                    const pctTotal = (raw.presTotalEjer / raw.presTotalAsig) * 100;
+                    const pctMtto = (raw.presMttoEjer / raw.presMttoAsig) * 100;
+
+                    dataSet[mes] = {
+                        raw: raw,
+                        kpis: { mp_cumplimiento: raw.mp, mttr: raw.mttr, downtime: totalDowntime, budget_total: pctTotal, budget_mxn: raw.presTotalEjer },
+                        finanzas: { asigTotal: raw.presTotalAsig, ejerTotal: raw.presTotalEjer, asigMtto: raw.presMttoAsig, ejerMtto: raw.presMttoEjer },
+                        charts: { ratio_mp: raw.ratioMP, ratio_mc: raw.ratioMC, downtime_equipos: [raw.downReso, raw.downTomo, raw.downHemo, raw.downRayos], budget_pct: [pctTotal, pctMtto] },
+                        retos: []
+                    };
+                }
+
+                // Agregación aditiva de múltiples retos/hallazgos por periodo
+                if (row.reto_titulo || row.reto_desc) {
+                    const retoTipo = String(row.reto_tipo || 'primary').trim();
+                    let iconClass = retoTipo === 'danger' ? 'fa-triangle-exclamation' : (retoTipo === 'warning' ? 'fa-bolt' : (retoTipo === 'success' ? 'fa-check-double' : 'fa-thumbtack'));
+                    
+                    dataSet[mes].retos.push({
+                        tipo: retoTipo,
+                        icon: iconClass,
+                        titulo: String(row.reto_titulo || 'Operación Registrada'),
+                        desc: String(row.reto_desc || 'Sin observaciones detalladas.')
+                    });
+                }
             });
 
             let keys = Object.keys(dataSet);
             if (keys.length > 0) {
-                // Autoseleccionar el último mes disponible
-                currentMonth = keys[keys.length - 1]; 
+                // REQUERIMIENTO: Cargar de manera predeterminada el mes anterior a la fecha actual
+                let mesIdeal = obtenerMesAnterior();
+                if (dataSet[mesIdeal]) {
+                    currentMonth = mesIdeal;
+                } else {
+                    currentMonth = keys[keys.length - 1]; 
+                }
                 selector.value = currentMonth;
                 renderDashboard(currentMonth);
-                renderTrendChart();
             }
         }
 
@@ -353,28 +370,31 @@
             if(!data) return;
 
             document.getElementById('dashboardTitle').innerHTML = `Indicadores de Ingeniería Biomédica <span class="text-primary text-xl ml-2 capitalize">(${monthKey})</span>`;
-            
             document.getElementById('lbl-mp').innerText = "Cumplimiento MP";
             document.getElementById('lbl-mttr').innerText = "MTTR (Mensual)";
             document.getElementById('lbl-downtime').innerText = "Downtime (Mensual)";
+            document.getElementById('title-retos').innerHTML = '<i class="fa-solid fa-thumbtack text-primary mr-2"></i>Retos y Hallazgos';
             
-            const retosHTML = data.retos.map(r => {
+            // Renderizado completo de la lista de retos (admite n elementos)
+            const retosHTML = data.retos.length > 0 ? data.retos.map(r => {
                 let colorClass = r.tipo === 'danger' ? 'text-danger bg-danger/10 border-danger/30' : 
                                  r.tipo === 'warning' ? 'text-warning bg-warning/10 border-warning/30' : 
                                  r.tipo === 'success' ? 'text-success bg-success/10 border-success/30' : 'text-primary bg-primary/10 border-primary/30';
                 return `
                     <div class="flex gap-4 items-start p-3 bg-dark rounded-lg border ${colorClass}">
                         <div class="p-2 rounded-full mt-1"><i class="fa-solid ${r.icon} fa-fw"></i></div>
-                        <div>
+                        <div class="flex-grow">
                             <h4 class="text-white text-sm font-semibold">${r.titulo}</h4>
                             <p class="text-slate-400 text-xs mt-1 leading-relaxed">${r.desc}</p>
                         </div>
                     </div>
                 `;
-            }).join('');
+            }).join('') : `<p class="text-slate-500 text-xs italic text-center p-4">No se registraron hallazgos especiales para este periodo.</p>`;
+            
             document.getElementById('retosContainer').innerHTML = retosHTML;
 
             actualizarTarjetasYGraficas(data.kpis.mp_cumplimiento, data.kpis.mttr, data.kpis.downtime, data.kpis.budget_total, data.kpis.budget_mxn, data.charts.ratio_mp, data.charts.ratio_mc, data.charts.downtime_equipos, data.charts.budget_pct, data.finanzas);
+            renderTrendChart();
         }
 
         function renderAnnualDashboard() {
@@ -396,19 +416,21 @@
             document.getElementById('dashboardTitle').innerHTML = `Indicadores de Ingeniería Biomédica <span class="text-annual text-xl ml-2">(Acumulado Anual)</span>`;
             document.getElementById('lbl-mp').innerText = "Promedio MP Anual";
             document.getElementById('lbl-mttr').innerText = "Promedio MTTR Anual";
+            document.getElementById('title-retos').innerHTML = '<i class="fa-solid fa-chart-line text-annual mr-2"></i>Resumen Estratégico';
             
-            document.getElementById('retosContainer').innerHTML = `<div class="flex gap-4 items-start p-3 bg-dark rounded-lg border border-slate-700/50"><div class="p-2 rounded-full mt-1 text-annual bg-annual/10"><i class="fa-solid fa-calendar-check fa-fw"></i></div><div><h4 class="text-white text-sm font-semibold">Vista Consolidada</h4><p class="text-slate-400 text-xs mt-1 leading-relaxed">Calculando promedios y sumas en base a ${count} meses registrados.</p></div></div>`;
+            document.getElementById('retosContainer').innerHTML = `<div class="flex gap-4 items-start p-3 bg-dark rounded-lg border border-slate-700/50"><div class="p-2 rounded-full mt-1 text-annual bg-annual/10"><i class="fa-solid fa-calendar-check fa-fw"></i></div><div><h4 class="text-white text-sm font-semibold">Vista Consolidada</h4><p class="text-slate-400 text-xs mt-1 leading-relaxed">Calculando promedios y sumas en base a ${count} meses operativos registrados.</p></div></div>`;
+            renderTrendChart();
         }
 
         function actualizarTarjetasYGraficas(mp, mttr, downtime, bgTotal, bgMxn, ratioMp, ratioMc, arrDown, arrBg, finanzas) {
-            // Lógica de colores (Semaforización Directiva)
+            // REQUERIMIENTO: Ajuste de semaforización basada en meta > 95%
             const kpiMpEl = document.getElementById('kpi-mp');
             const statusMp = document.getElementById('kpi-mp-status');
             kpiMpEl.innerText = mp + '%';
-            if (mp >= 90) {
+            if (mp >= 95) {
                 kpiMpEl.className = 'text-3xl font-bold text-success';
                 statusMp.innerHTML = '<i class="fa-solid fa-circle-check text-success"></i>';
-            } else if (mp >= 80) {
+            } else if (mp >= 85) {
                 kpiMpEl.className = 'text-3xl font-bold text-warning';
                 statusMp.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-warning"></i>';
             } else {
@@ -442,7 +464,6 @@
             document.getElementById('lbl-asig-mtto').innerText = mxnFormatter.format(finanzas.asigMtto);
             document.getElementById('lbl-ejer-mtto').innerText = mxnFormatter.format(finanzas.ejerMtto);
 
-            // Gráficos
             if(ratioChartInstance) ratioChartInstance.destroy();
             ratioChartInstance = new Chart(document.getElementById('ratioChart'), {
                 type: 'doughnut',
@@ -454,7 +475,7 @@
             downtimeChartInstance = new Chart(document.getElementById('downtimeChart'), {
                 type: 'bar',
                 data: { labels: ['Resonancia', 'Tomografía', 'Hemodinamia', 'Rayos X'], datasets: [{ label: 'Horas', data: arrDown, backgroundColor: ['#f43f5e', '#f59e0b', '#38bdf8', '#10b981'], borderRadius: 4 }] },
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { suggestedMax: 100, grid: { color: '#1e293b' } }, y: { grid: { display: false } } } }
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { suggestedMax: 50, grid: { color: '#1e293b' } }, y: { grid: { display: false } } } }
             });
 
             if(budgetChartInstance) budgetChartInstance.destroy();
@@ -465,20 +486,31 @@
             });
         }
 
+        // REQUERIMIENTO: Gráfico de Líneas con Lógica Dual Adaptable (MP vs Gasto Mensual)
         function renderTrendChart() {
             if(trendChartInstance) trendChartInstance.destroy();
+            
+            // Si está en vista anual, grafica la tendencia de gasto presupuestal; si no, grafica el cumplimiento de MP
+            let labelText = isAnnualView ? 'Gasto Mensual Total (MXN)' : '% de Cumplimiento MP';
+            let dataPoints = isAnnualView ? historicoGastoTotal : historicoMP;
+            let borderColor = isAnnualView ? '#8b5cf6' : '#38bdf8'; 
+            let bgColor = isAnnualView ? 'rgba(139, 92, 246, 0.1)' : 'rgba(56, 189, 248, 0.1)';
+            
+            document.getElementById('trendChartTitle').innerText = isAnnualView ? "Tendencia Mensual de Gasto Presupuestal" : "Evolución de Cumplimiento (Histórico)";
+            document.getElementById('trendChartSubtitle').innerText = isAnnualView ? "Presupuesto total ejercido mes a mes en moneda nacional" : "Tendencia de Mantenimientos Preventivos a lo largo de los meses";
+
             trendChartInstance = new Chart(document.getElementById('trendChart'), {
                 type: 'line',
                 data: {
                     labels: historicoMeses,
                     datasets: [{
-                        label: '% de Cumplimiento MP',
-                        data: historicoMP,
-                        borderColor: '#38bdf8',
-                        backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                        label: labelText,
+                        data: dataPoints,
+                        borderColor: borderColor,
+                        backgroundColor: bgColor,
                         borderWidth: 3,
                         pointBackgroundColor: '#0f172a',
-                        pointBorderColor: '#38bdf8',
+                        pointBorderColor: borderColor,
                         pointBorderWidth: 2,
                         pointRadius: 4,
                         fill: true,
@@ -490,20 +522,30 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: { display: false },
-                        tooltip: { mode: 'index', intersect: false }
+                        tooltip: { 
+                            mode: 'index', 
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let value = context.parsed.y;
+                                    return isAnnualView ? mxnFormatter.format(value) : value + '%';
+                                }
+                            }
+                        }
                     },
                     scales: {
                         y: { 
-                            min: 50, max: 100, 
+                            beginAtZero: isAnnualView,
+                            min: isAnnualView ? undefined : 50, 
+                            max: isAnnualView ? undefined : 100, 
                             grid: { color: '#1e293b' },
-                            ticks: { callback: function(value) { return value + "%" } }
+                            ticks: { 
+                                callback: function(value) { 
+                                    return isAnnualView ? mxnFormatter.format(value) : value + "%"; 
+                                } 
+                            }
                         },
                         x: { grid: { display: false } }
-                    },
-                    interaction: {
-                        mode: 'nearest',
-                        axis: 'x',
-                        intersect: false
                     }
                 }
             });
