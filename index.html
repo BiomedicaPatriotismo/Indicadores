@@ -207,7 +207,7 @@
 
                 <div class="bg-panel p-6 rounded-xl border border-slate-800 flex-grow flex flex-col" style="min-height: 24rem;">
                     <h3 class="text-white font-semibold mb-4 border-b border-slate-700 pb-2" id="title-retos"><i class="fa-solid fa-thumbtack text-primary mr-2"></i>Retos y Hallazgos</h3>
-                    <div id="retosContainer" class="flex flex-col gap-3 overflow-y-auto pr-2 flex-grow max-h-[32rem]">
+                    <div id="retosContainer" class="flex flex-col gap-3 overflow-y-auto pr-3 flex-grow max-h-[32rem]">
                     </div>
                 </div>
             </div>
@@ -307,26 +307,27 @@
 
                 const mesFormateado = mes.charAt(0).toUpperCase() + mes.slice(1);
 
-                const raw = {
-                    mp: Number(row.mp_cumplimiento) || 0,
-                    mttr: Number(row.mttr) || 0,
-                    downReso: Number(row.downtime_resonancia) || 0,
-                    downTomo: Number(row.downtime_tomografia) || 0,
-                    downHemo: Number(row.downtime_hemodinamia) || 0,
-                    downRayos: Number(row.downtime_rayos_x) || 0,
-                    presTotalAsig: Number(row.presupuesto_total_asig) || 100,
-                    presTotalEjer: Number(row.presupuesto_total_ejer) || 0,
-                    presMttoAsig: Number(row.presupuesto_mtto_asig) || 100,
-                    presMttoEjer: Number(row.presupuesto_mtto_ejer) || 0,
-                    ratioMP: Number(row.ratio_mp) || 0,
-                    ratioMC: Number(row.ratio_mc) || 0
-                };
-
+                // Inicializamos el mes si no existe
                 if (!dataSet[mes]) {
                     const option = document.createElement('option');
                     option.value = mes;
                     option.text = mesFormateado;
                     selector.appendChild(option);
+
+                    const raw = {
+                        mp: Number(row.mp_cumplimiento) || 0,
+                        mttr: Number(row.mttr) || 0,
+                        downReso: Number(row.downtime_resonancia) || 0,
+                        downTomo: Number(row.downtime_tomografia) || 0,
+                        downHemo: Number(row.downtime_hemodinamia) || 0,
+                        downRayos: Number(row.downtime_rayos_x) || 0,
+                        presTotalAsig: Number(row.presupuesto_total_asig) || 100,
+                        presTotalEjer: Number(row.presupuesto_total_ejer) || 0,
+                        presMttoAsig: Number(row.presupuesto_mtto_asig) || 100,
+                        presMttoEjer: Number(row.presupuesto_mtto_ejer) || 0,
+                        ratioMP: Number(row.ratio_mp) || 0,
+                        ratioMC: Number(row.ratio_mc) || 0
+                    };
 
                     historicoMeses.push(mesFormateado);
                     historicoMP.push(raw.mp);
@@ -345,16 +346,23 @@
                     };
                 }
 
-                if (row.reto_titulo || row.reto_desc) {
-                    const retoTipo = String(row.reto_tipo || 'primary').trim();
-                    let iconClass = retoTipo === 'danger' ? 'fa-triangle-exclamation' : (retoTipo === 'warning' ? 'fa-bolt' : (retoTipo === 'success' ? 'fa-check-double' : 'fa-thumbtack'));
-                    
-                    dataSet[mes].retos.push({
-                        tipo: retoTipo,
-                        icon: iconClass,
-                        titulo: String(row.reto_titulo || 'Operación Registrada'),
-                        desc: String(row.reto_desc || 'Sin observaciones detalladas.')
-                    });
+                // Lógica de procesamiento de hasta 5 retos independientes por fila
+                for (let i = 1; i <= 5; i++) {
+                    let tituloCol = row[`reto${i}_titulo`];
+                    let descCol = row[`reto${i}_desc`];
+                    let tipoCol = row[`reto${i}_tipo`];
+
+                    if (tituloCol && String(tituloCol).trim() !== "") {
+                        let retoTipoClean = String(tipoCol || 'primary').trim();
+                        let iconClass = retoTipoClean === 'danger' ? 'fa-triangle-exclamation' : (retoTipoClean === 'warning' ? 'fa-bolt' : (retoTipoClean === 'success' ? 'fa-check-double' : 'fa-thumbtack'));
+                        
+                        dataSet[mes].retos.push({
+                            tipo: retoTipoClean,
+                            icon: iconClass,
+                            titulo: String(tituloCol).trim(),
+                            desc: String(descCol || '').trim()
+                        });
+                    }
                 }
             });
 
@@ -375,7 +383,6 @@
             const data = dataSet[monthKey];
             if(!data) return;
 
-            // Ocultar gráfica de gasto en vista mensual
             document.getElementById('expenseTrendContainer').classList.add('hidden');
             document.getElementById('expenseTrendContainer').classList.remove('flex');
 
@@ -390,7 +397,7 @@
                                  r.tipo === 'warning' ? 'text-warning bg-warning/10 border-warning/30' : 
                                  r.tipo === 'success' ? 'text-success bg-success/10 border-success/30' : 'text-primary bg-primary/10 border-primary/30';
                 return `
-                    <div class="flex gap-4 items-start p-3 bg-dark rounded-lg border ${colorClass}">
+                    <div class="flex gap-4 items-start p-3 bg-dark rounded-lg border ${colorClass} transition-colors hover:border-slate-500">
                         <div class="p-2 rounded-full mt-1"><i class="fa-solid ${r.icon} fa-fw"></i></div>
                         <div class="flex-grow">
                             <h4 class="text-white text-sm font-semibold">${r.titulo}</h4>
@@ -410,7 +417,6 @@
             let keys = Object.keys(dataSet);
             if(keys.length === 0) return;
 
-            // Mostrar gráfica de gasto en vista anual
             document.getElementById('expenseTrendContainer').classList.remove('hidden');
             document.getElementById('expenseTrendContainer').classList.add('flex');
 
@@ -499,7 +505,6 @@
         }
 
         function renderTrendCharts() {
-            // 1. Gráfica de Cumplimiento MP (Siempre visible en todas las vistas)
             if(trendChartInstance) trendChartInstance.destroy();
             trendChartInstance = new Chart(document.getElementById('trendChart'), {
                 type: 'line',
@@ -539,7 +544,6 @@
                 }
             });
 
-            // 2. Gráfica de Tendencia de Gasto (Solo se renderiza si estamos en Vista Anual)
             if (isAnnualView) {
                 if(expenseTrendChartInstance) expenseTrendChartInstance.destroy();
                 expenseTrendChartInstance = new Chart(document.getElementById('expenseTrendChart'), {
