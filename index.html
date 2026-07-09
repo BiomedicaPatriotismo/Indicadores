@@ -35,14 +35,64 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
+        /* REGLAS MEJORADAS DE IMPRESIÓN */
         @media print {
+            @page { 
+                size: landscape; /* Fuerza el modo horizontal para mejor visualización */
+                margin: 1cm; 
+            }
             body { background-color: white !important; color: black !important; }
-            .bg-dark, .bg-panel { background-color: white !important; border: 1px solid #e2e8f0 !important; }
+            .bg-dark, .bg-panel { 
+                background-color: white !important; 
+                border: 1px solid #cbd5e1 !important; 
+                box-shadow: none !important; 
+            }
             .text-white { color: #0f172a !important; }
-            .text-slate-400 { color: #475569 !important; }
+            .text-slate-400, .text-slate-500 { color: #475569 !important; }
+            .text-primary { color: #0284c7 !important; }
+            .text-annual { color: #7c3aed !important; }
             .no-print { display: none !important; }
-            canvas { max-height: 300px !important; }
-            .shadow-lg, .shadow-inner { box-shadow: none !important; }
+            
+            /* KPIs: Ajustamos a una grilla de 2 columnas o 4 en landscape */
+            .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 {
+                display: grid !important;
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 1rem !important;
+            }
+
+            /* Contenido Principal: Apilamos todas las tarjetas para evitar superposición */
+            .grid-cols-1.lg\:grid-cols-3 { display: block !important; }
+            .grid-cols-1.lg\:grid-cols-3 > div { width: 100% !important; display: block !important; margin-bottom: 0 !important; }
+            
+            /* Tarjetas y saltos de página */
+            .bg-panel { 
+                margin-bottom: 1.5rem !important; 
+                page-break-inside: avoid !important;
+                min-height: auto !important;
+                height: auto !important;
+            }
+
+            /* Contenedores de Gráficas: Restricción estricta de ancho y alto */
+            .bg-panel > div.relative {
+                height: 250px !important; /* Altura controlada para el papel */
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            canvas { 
+                width: 100% !important; 
+                max-width: 100% !important;
+                height: 100% !important; 
+            }
+
+            /* Quitar el scroll de retos para que se impriman todos */
+            #retosContainer {
+                max-height: none !important;
+                overflow: visible !important;
+                padding-right: 0 !important;
+            }
+            
+            /* Asegurar visibilidad sin transiciones de opacidad */
+            #mainDashboard { opacity: 1 !important; } 
         }
     </style>
 </head>
@@ -254,6 +304,13 @@
                 renderAnnualDashboard();
             });
 
+            // FIX DE IMPRESIÓN: Redimensionar las gráficas antes de que se genere la previsualización de impresión
+            window.addEventListener('beforeprint', () => {
+                for (let id in Chart.instances) {
+                    Chart.instances[id].resize();
+                }
+            });
+
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = "'Inter', sans-serif";
             Chart.defaults.plugins.tooltip.backgroundColor = '#1e293b';
@@ -307,7 +364,6 @@
 
                 const mesFormateado = mes.charAt(0).toUpperCase() + mes.slice(1);
 
-                // Inicializamos el mes si no existe
                 if (!dataSet[mes]) {
                     const option = document.createElement('option');
                     option.value = mes;
@@ -346,7 +402,6 @@
                     };
                 }
 
-                // Lógica de procesamiento de hasta 5 retos independientes por fila
                 for (let i = 1; i <= 5; i++) {
                     let tituloCol = row[`reto${i}_titulo`];
                     let descCol = row[`reto${i}_desc`];
